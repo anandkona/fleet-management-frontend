@@ -1,0 +1,393 @@
+.form-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.action-panel {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.primary-button {
+  background: #7C6FF7;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.primary-button:hover {
+  background: #6B5CE7;
+}
+
+.primary-button:disabled {
+  background: #A0AEC0;
+  cursor: not-allowed;
+}
+
+.ghost-button {
+  background: transparent;
+  color: #4A5568;
+  border: 1px solid #E2E8F0;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ghost-button:hover {
+  background: #F7FAFC;
+}
+
+.success-banner {
+  background: #E6FAF8;
+  color: #00C2A8;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.error-banner {
+  background: #FFEEEE;
+  color: #FF5D5D;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.card {
+  background: white;
+  border: 1px solid #E4E7EC;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.table-card {
+  padding: 1rem;
+}
+
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.role-permission-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.role-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.role-selector-row select {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+}
+
+.field-label {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #4A5568;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.role-search-input {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  min-width: 200px;
+}
+
+.role-search-input:focus {
+  outline: none;
+  border-color: #7C6FF7;
+  box-shadow: 0 0 0 2px rgba(124, 111, 247, 0.15);
+}
+
+.table-secondary {
+  font-size: 0.8rem;
+  color: #6B7A8D;
+}
+
+.permission-count {
+  font-weight: 500;
+}
+
+.role-edit-h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1A2332;
+  margin: 0 0 0.25rem;
+}
+
+.role-edit-desc {
+  margin: 0;
+}
+
+.helper-text {
+  font-size: 0.8rem;
+  color: #6B7A8D;
+}
+
+.form-section-grid {
+  padding: 1.25rem;
+}
+
+.system-badge {
+  background: #EEF0FF;
+  color: #7C6FF7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.permission-badge {
+  background: #E6FAF8;
+  color: #00C2A8;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.form-two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-page label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.form-page input[type="text"],
+.form-page input:not([type]),
+.form-page textarea,
+.form-page select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+.form-page input:focus,
+.form-page textarea:focus,
+.form-page select:focus {
+  outline: none;
+  border-color: #7C6FF7;
+  box-shadow: 0 0 0 2px rgba(124, 111, 247, 0.15);
+}
+
+.form-page textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.role-status-label {
+  max-width: 200px;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.data-table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  color: #4A5568;
+  border-bottom: 2px solid #E4E7EC;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.data-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #F2F4F7;
+  vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+  background: #F9FAFB;
+}
+
+.permission-module-row {
+  background: #F7F8FA;
+}
+
+.permission-module-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem !important;
+  font-weight: 600;
+}
+
+.permission-module-name {
+  font-weight: 700;
+  color: #1A2332;
+  text-transform: capitalize;
+}
+
+.permission-module-count {
+  font-weight: 400;
+}
+
+.permission-module-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.compact-module-btn {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.permission-code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  background: #F7F8FA;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  color: #4A5568;
+}
+
+.permission-desc {
+  color: #6B7A8D;
+  font-size: 0.85rem;
+}
+
+.permission-cell {
+  text-align: center;
+}
+
+.permission-cell input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #7C6FF7;
+}
+
+.permission-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.permission-actions-cell input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #7C6FF7;
+}
+
+.permission-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid #E4E7EC;
+  margin-top: 0.75rem;
+}
+
+.muted-copy {
+  color: #6B7A8D;
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.stack-form label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.stack-form label span {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #4A5568;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.stack-form input,
+.stack-form textarea,
+.stack-form select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.inline-edit-input {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #7C6FF7;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  box-sizing: border-box;
+}
+
+.inline-edit-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 111, 247, 0.2);
+}
