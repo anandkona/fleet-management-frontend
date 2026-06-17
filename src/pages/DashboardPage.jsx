@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Grid, Card, CardContent, Typography, Box, Stack, Skeleton,
   Table, TableBody, TableCell, TableHead, TableRow, Avatar,
-  TableContainer, Alert, Button, IconButton, Tooltip,
+  TableContainer, Alert, Chip, IconButton, Tooltip,
 } from '@mui/material';
 import {
   DirectionsCar, Person, Build, DirectionsCarFilled,
@@ -148,6 +148,30 @@ export default function DashboardPage() {
       )}
 
       <Stack spacing={3}>
+        <Card sx={{ borderRadius: 3, background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', color: 'white' }}>
+          <CardContent>
+            <Stack direction={{ xs: 'column', lg: 'row' }} justifyContent="space-between" spacing={2}>
+              <Box sx={{ maxWidth: 700 }}>
+                <Typography variant="overline" sx={{ letterSpacing: 1.6, opacity: 0.9 }}>Fleet command center</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>Monitor fleet readiness, maintenance, and asset health instantly.</Typography>
+                <Typography variant="body2" sx={{ mt: 1, color: 'rgba(255,255,255,0.82)' }}>
+                  Track vehicle availability, driver status, assets, and compliance signals from your live fleet APIs in one place.
+                </Typography>
+              </Box>
+              <Stack spacing={1} sx={{ minWidth: 260 }}>
+                {[
+                  'AI-ready insights',
+                  'Document expiry checks',
+                  'Maintenance watchlist',
+                  'Fleet utilization summary',
+                ].map((tag) => (
+                  <Chip key={tag} label={tag} variant="outlined" sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.18)', bgcolor: 'rgba(255,255,255,0.08)' }} />
+                ))}
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+
         <Grid container spacing={2.5}>
           {[
             { icon: <DirectionsCar />, label: 'Total Vehicles', value: vehicles.length, color: PALETTE.teal },
@@ -164,14 +188,45 @@ export default function DashboardPage() {
         </Grid>
 
         <Grid container spacing={2.5}>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} lg={8}>
+            <Card sx={{ height: '100%', borderRadius: 3 }}>
+              <CardContent>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>AI Fleet Insights</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Live signals to prioritize fleet action and keep operations responsive.</Typography>
+                <Grid container spacing={2}>
+                  {[
+                    { label: 'Vehicles ready', value: `${vehicles.filter((v) => v.status === 'AVAILABLE').length} available`, tone: PALETTE.teal },
+                    { label: 'Maintenance queue', value: `${vehicles.filter((v) => ['UNDER_MAINTENANCE', 'UNDER_REPAIR'].includes(v.status)).length} units`, tone: PALETTE.amber },
+                    { label: 'Drivers on duty', value: `${drivers.filter((d) => d.status === 'AVAILABLE').length} active`, tone: '#7C6FF7' },
+                    { label: 'Assets flagged', value: `${assets.filter((a) => ['DAMAGED', 'LOST', 'UNDER_REPAIR'].includes(a.currentStatus)).length} items`, tone: PALETTE.coral },
+                  ].map((item) => (
+                    <Grid item xs={12} sm={6} key={item.label}>
+                      <Card variant="outlined" sx={{ borderRadius: 2, height: '100%' }}>
+                        <CardContent sx={{ py: 1.75 }}>
+                          <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 1.1, color: 'text.secondary' }}>{item.label}</Typography>
+                          <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.8, color: item.tone }}>{item.value}</Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} lg={4}>
             <StatusPieChart data={vehicleStats} title="Vehicle Status" loading={loading} />
           </Grid>
+        </Grid>
+
+        <Grid container spacing={2.5}>
           <Grid item xs={12} md={4}>
             <TypeBarChart data={vehicleTypes} title="Vehicles by Type" loading={loading} />
           </Grid>
           <Grid item xs={12} md={4}>
             <TypeBarChart data={fuelTypes} title="Fuel Type Distribution" loading={loading} color={PALETTE.amber} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <StatusPieChart data={driverStats} title="Driver Status" loading={loading} />
           </Grid>
         </Grid>
 

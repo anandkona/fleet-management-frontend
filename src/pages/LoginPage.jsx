@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Box,
   Card,
@@ -84,6 +84,8 @@ export default function LoginPage() {
                 src="/hippo fleet logo.png" 
                 alt="Hippo Fleet Logo"
                 style={{
+
+                  
                   width: '250px',
                
                   objectFit: "contain",
@@ -159,6 +161,9 @@ export default function LoginPage() {
                 }}
               />
 
+
+             
+
               <Button
                 type="submit"
                 variant="contained"
@@ -175,8 +180,12 @@ export default function LoginPage() {
                   "Sign In"
                 )}
               </Button>
+
+            
             </Stack>
           </Box>
+
+          
         </CardContent>
       </Card>
     </Box>

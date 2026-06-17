@@ -10,7 +10,7 @@ import { StatusChip, PageHeader, EmptyState } from '../components/Common';
 import { useAuth } from '../context/AuthContext';
 
 const statuses = ['ACTIVE', 'INACTIVE'];
-const emptyForm = { name: '', key: '', description: '', status: 'ACTIVE', permissionKeys: [] };
+const emptyForm = { name: '', key: '', description: '', status: 'ACTIVE', permissionKeys: [], isMaster: false };
 
 function extractList(res) {
   const body = res.data;
@@ -78,6 +78,7 @@ export default function RolesPage() {
       description: role.description || '',
       status: role.status || 'ACTIVE',
       permissionKeys: getPermKeys(role),
+      isMaster: role.isMaster || false,
     });
     setError('');
     setDialogOpen(true);
@@ -110,14 +111,15 @@ export default function RolesPage() {
     setSaving(true);
     setError('');
     try {
+      const permKeys = form.isMaster ? permissions.map((p) => p.key) : form.permissionKeys;
       if (selected) {
-        await roleService.update(selected.id, { name: form.name, key: form.key, description: form.description, status: form.status });
-        await roleService.assignPermissions(selected.id, form.permissionKeys);
+        await roleService.update(selected.id, { name: form.name, key: form.key, description: form.description, status: form.status, isMaster: form.isMaster });
+        await roleService.assignPermissions(selected.id, permKeys);
       } else {
-        const res = await roleService.create({ name: form.name, key: form.key, description: form.description, status: form.status });
+        const res = await roleService.create({ name: form.name, key: form.key, description: form.description, status: form.status, isMaster: form.isMaster });
         const created = res.data?.data ?? res.data;
         if (created?.id) {
-          await roleService.assignPermissions(created.id, form.permissionKeys);
+          await roleService.assignPermissions(created.id, permKeys);
         }
       }
       setDialogOpen(false);
@@ -158,6 +160,7 @@ export default function RolesPage() {
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{role.name}</Typography>
+                      {role.isMaster && <Chip label="Master" size="small" sx={{ height: 20, fontSize: '0.7rem', bgcolor: '#FFE5CC', color: '#FF6B35', fontWeight: 600 }} />}
                       {role.isSystem && <Chip label="System" size="small" sx={{ height: 20, fontSize: '0.7rem', bgcolor: '#EEF0FF', color: '#7C6FF7' }} />}
                     </Stack>
                   </TableCell>
@@ -195,15 +198,19 @@ export default function RolesPage() {
             <TextField label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} select fullWidth>
               {statuses.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
             </TextField>
+            <FormControlLabel
+              control={<Checkbox checked={form.isMaster} onChange={(e) => setForm({ ...form, isMaster: e.target.checked })} />}
+              label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Master Role (Super Admin - Auto-assigns all permissions)</Typography>}
+            />
 
             <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Permissions</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Permissions {form.isMaster && <Chip label="All permissions" size="small" sx={{ ml: 1, fontSize: '0.7rem', bgcolor: '#FFE5CC', color: '#FF6B35' }} />}</Typography>
               {Object.entries(groupedPermissions).map(([module, perms]) => (
-                <Box key={module} mb={1.5}>
+                <Box key={module} mb={1.5} sx={{ opacity: form.isMaster ? 0.5 : 1, pointerEvents: form.isMaster ? 'none' : 'auto' }}>
                   <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
                     <Chip label={module} size="small" sx={{ fontWeight: 600, textTransform: 'capitalize' }} />
-                    <Button size="small" onClick={() => selectAllInModule(module)}>Select All</Button>
-                    <Button size="small" onClick={() => clearModule(module)}>Clear</Button>
+                    <Button size="small" onClick={() => selectAllInModule(module)} disabled={form.isMaster}>Select All</Button>
+                    <Button size="small" onClick={() => clearModule(module)} disabled={form.isMaster}>Clear</Button>
                     <Typography variant="caption" color="text.secondary">
                       ({perms.filter((p) => form.permissionKeys.includes(p.key)).length}/{perms.length})
                     </Typography>
@@ -212,7 +219,7 @@ export default function RolesPage() {
                     {perms.map((perm) => (
                       <FormControlLabel
                         key={perm.id}
-                        control={<Checkbox size="small" checked={form.permissionKeys.includes(perm.key)} onChange={() => togglePerm(perm.key)} />}
+                        control={<Checkbox size="small" checked={form.isMaster || form.permissionKeys.includes(perm.key)} onChange={() => togglePerm(perm.key)} disabled={form.isMaster} />}
                         label={<Typography variant="body2" sx={{ fontSize: '0.8rem' }}>{perm.key}</Typography>}
                         sx={{ width: '25%', minWidth: 180 }}
                       />

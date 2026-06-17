@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = '/api/v1';
+const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1`;
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -27,9 +27,17 @@ api.interceptors.response.use((response) => response, (error) => {
 export const authService = {
   login: (identifier, password) =>
     api.post('/auth/login', { identifier, password }),
+  register: (firstName, lastName, email, phoneNumber, password) =>
+    api.post('/auth/register', { firstName, lastName, email, phoneNumber, password }),
   me: () => api.get('/auth/me'),
   logout: (refreshToken) => api.post('/auth/logout', { refreshToken }),
   refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
+  requestPasswordReset: (email) =>
+    api.post('/auth/forgot-password', { email }),
+  verifyPasswordResetOtp: (email, otp) =>
+    api.post('/auth/verify-otp', { email, otp }),
+  resetPassword: (email, otp, newPassword) =>
+    api.post('/auth/reset-password', { email, otp, newPassword }),
 };
 
 // ─── VEHICLES ────────────────────────────────────────────────────────────────

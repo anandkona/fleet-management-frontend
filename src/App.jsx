@@ -1,6 +1,9 @@
+import "@fontsource/nunito";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
 import LoginPage from "./pages/LoginPage";
+
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import VehiclesPage from "./pages/VehiclesPage";
 import DriversPage from "./pages/DriversPage";
@@ -16,6 +19,7 @@ import RepairsPage from "./pages/RepairsPage";
 import ReportsPage from "./pages/ReportsPage";
 import FuelPage from "./pages/FuelPage";
 import TripsPage from "./pages/TripsPage";
+// import MasterPage from "./pages/MasterPage";
 import Layout from "./components/Layout";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -56,6 +60,15 @@ export default function App() {
               </PublicRoute>
             }
           />
+        
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicRoute>
+                <ForgotPasswordPage />
+              </PublicRoute>
+            }
+          />
           <Route
             element={
               <ProtectedRoute>
@@ -77,7 +90,9 @@ export default function App() {
             <Route path="/expense" element={<ExpensePage />} />
             <Route path="/finance" element={<FinancePage />} />
             <Route path="/repairs" element={<RepairsPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/reports" element={<ReportsPage />} />       
+              {/* <Route path="/master" element={<MasterPage/>}/> */}
+            
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>

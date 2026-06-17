@@ -24,7 +24,7 @@ const theme = createTheme({
     navy:      { main: PALETTE.navy },
   },
   typography: {
-    fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
+    fontFamily: '"Nunito", "Helvetica Neue", Arial, sans-serif',
     h1: { fontWeight: 700, letterSpacing: '-0.02em' },
     h2: { fontWeight: 700, letterSpacing: '-0.02em' },
     h3: { fontWeight: 600, letterSpacing: '-0.01em' },
