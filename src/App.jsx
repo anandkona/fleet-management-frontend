@@ -16,7 +16,7 @@ import SettingsPage from "./pages/SettingsPage";
 import ExpensePage from "./pages/ExpensePage";
 import FinancePage from "./pages/FinancePage";
 import RepairsPage from "./pages/RepairsPage";
-import ReportsPage from "./pages/ReportsPage";
+import MaintenancePage from "./pages/MaintenancePage";
 import FuelPage from "./pages/FuelPage";
 import TripsPage from "./pages/TripsPage";
 // import MasterPage from "./pages/MasterPage";
@@ -90,7 +90,7 @@ export default function App() {
             <Route path="/expense" element={<ExpensePage />} />
             <Route path="/finance" element={<FinancePage />} />
             <Route path="/repairs" element={<RepairsPage />} />
-            <Route path="/reports" element={<ReportsPage />} />       
+            <Route path="/maintenance" element={<MaintenancePage />} />       
               {/* <Route path="/master" element={<MasterPage/>}/> */}
             
           </Route>

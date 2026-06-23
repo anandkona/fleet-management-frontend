@@ -132,7 +132,7 @@ export default function RolesPage() {
 
   return (
     <Box>
-      <PageHeader title="Roles & Permissions" subtitle="Manage system roles and their permission coverage" action={
+      <PageHeader title="Roles & Permissions" subtitle="Manage system roles and their permission coverage" icon={Shield} action={
         hasPermission('role_create') ? <Button variant="contained" startIcon={<Add />} onClick={openCreate}>New Role</Button> : null
       } />
 
@@ -164,7 +164,7 @@ export default function RolesPage() {
                       {role.isSystem && <Chip label="System" size="small" sx={{ height: 20, fontSize: '0.7rem', bgcolor: '#EEF0FF', color: '#7C6FF7' }} />}
                     </Stack>
                   </TableCell>
-                  <TableCell><Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'text.secondary' }}>{role.key}</Typography></TableCell>
+                  <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: 'text.secondary',textTransform:'capitalize' }}>{role.key}</Typography></TableCell>
                   <TableCell sx={{ color: 'text.secondary', maxWidth: 250 }}>{role.description || '—'}</TableCell>
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -220,7 +220,7 @@ export default function RolesPage() {
                       <FormControlLabel
                         key={perm.id}
                         control={<Checkbox size="small" checked={form.isMaster || form.permissionKeys.includes(perm.key)} onChange={() => togglePerm(perm.key)} disabled={form.isMaster} />}
-                        label={<Typography variant="body2" sx={{ fontSize: '0.8rem' }}>{perm.key}</Typography>}
+                        label={<Typography variant="body2" sx={{ fontSize: '0.8rem', fontFamily: '"Nunito", sans-serif' }}>{perm.key}</Typography>}
                         sx={{ width: '25%', minWidth: 180 }}
                       />
                     ))}

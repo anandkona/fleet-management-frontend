@@ -107,6 +107,7 @@ export default function OperationsLogisticsPage() {
       <PageHeader
         title="Operations & Logistics"
         subtitle="Track assets assigned to vehicles and drivers"
+        icon={LocalShipping}
         action={<Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add Asset</Button>}
       />
 

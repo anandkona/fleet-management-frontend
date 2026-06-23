@@ -54,7 +54,7 @@ export function StatCard({ icon, label, value, sub, color = PALETTE.teal, loadin
             {label}
           </Typography>
           {loading ? <Skeleton width={60} height={32} /> : (
-            <Typography variant="h5" sx={{ fontWeight: 700, color: PALETTE.navy, lineHeight: 1.2 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
               {value ?? '—'}
             </Typography>
           )}
@@ -82,11 +82,14 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, loadi
   );
 }
 
-export function PageHeader({ title, subtitle, action }) {
+export function PageHeader({ title, subtitle, action, icon: Icon }) {
   return (
     <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" mb={3} gap={2}>
       <Box>
-        <Typography variant="h5" sx={{ fontWeight: 700, color: PALETTE.navy }}>{title}</Typography>
+        <Stack direction="row" alignItems="center" spacing={1.2} mb={0.5}>
+          {Icon && <Icon sx={{ color: PALETTE.teal, fontSize: 26 }} />}
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>{title}</Typography>
+        </Stack>
         {subtitle && <Typography variant="body2" color="text.secondary" mt={0.5}>{subtitle}</Typography>}
       </Box>
       {action && <Box sx={{ flexShrink: 0 }}>{action}</Box>}
@@ -98,7 +101,7 @@ export function EmptyState({ icon, title, description, action }) {
   return (
     <Box sx={{ textAlign: 'center', py: 8, px: 2 }}>
       <Box sx={{ fontSize: 64, mb: 2, color: '#D0D5DD' }}>{icon}</Box>
-      <Typography variant="h6" sx={{ fontWeight: 600, color: PALETTE.navy, mb: 1 }}>{title}</Typography>
+      <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', mb: 1 }}>{title}</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>{description}</Typography>
       {action}
     </Box>

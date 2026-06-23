@@ -4,9 +4,10 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   MenuItem, Stack, TableContainer, Typography, Tooltip, Chip,
 } from '@mui/material';
-import { Add, Edit } from '@mui/icons-material';
+import { Add, Edit, Category } from '@mui/icons-material';
 import { assetCategoryService } from '../services/api';
 import { StatusChip, PageHeader, EmptyState } from '../components/Common';
+import '@fontsource/nunito'
 
 const emptyForm = { name: '', key: '', description: '', status: 'ACTIVE' };
 
@@ -51,6 +52,7 @@ export default function CategoriesPage() {
       <PageHeader
         title="Categories"
         subtitle="Manage asset categories and groupings"
+        icon={Category}
         action={<Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add Category</Button>}
       />
 
@@ -68,9 +70,12 @@ export default function CategoriesPage() {
               <TableRow><TableCell colSpan={6}><EmptyState icon="📁" title="No categories" description="Create your first asset category" action={<Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add Category</Button>} /></TableCell></TableRow>
             ) : categories.map((c) => (
               <TableRow key={c.id} hover>
-                <TableCell><Typography variant="body2" sx={{ fontWeight: 600 }}>{c.name}</Typography></TableCell>
-                <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.82rem' }}>{c.key}</TableCell>
-                <TableCell><Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 250 }}>{c.description || '—'}</Typography></TableCell>
+                <TableCell><Typography variant="body2" sx={{ fontWeight: 500
+
+              
+                 }}>{c.name}</Typography></TableCell>
+                <TableCell sx={{ fontFamily: 'nunito' }}>{c.key}</TableCell>
+                <TableCell><Typography color="text.secondary" noWrap sx={{ maxWidth: 500 }}>{c.description || '—'}</Typography></TableCell>
                 <TableCell><Chip label={c._count?.assets ?? 0} size="small" sx={{ fontWeight: 600 }} /></TableCell>
                 <TableCell><StatusChip status={c.status} /></TableCell>
                 <TableCell><Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(c)}><Edit fontSize="small" /></IconButton></Tooltip></TableCell>

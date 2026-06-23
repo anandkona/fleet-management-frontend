@@ -43,6 +43,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("fleet_permissions");
         setUser(null);
         setPermissions([]);
+        setAccessToken(null);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -50,16 +51,20 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (identifier, password) => {
     const res = await authService.login(identifier, password);
     const payload = res.data?.data ?? res.data;
-    const { accessToken, refreshToken, user: u, permissions: perms } = payload;
+    
+    const token = payload.accessToken || payload.token;
+    const refreshToken = payload.refreshToken || "";
+    const u = payload.user ?? null;
+    const perms = payload.permissions ?? u?.permissions ?? [];
 
-    localStorage.setItem("fleet_token", accessToken);
+    localStorage.setItem("fleet_token", token);
     localStorage.setItem("fleet_user", JSON.stringify(u));
-    localStorage.setItem("fleet_refresh_token", refreshToken || "");
-    localStorage.setItem("fleet_permissions", JSON.stringify(perms || []));
+    localStorage.setItem("fleet_refresh_token", refreshToken);
+    localStorage.setItem("fleet_permissions", JSON.stringify(perms));
 
     setUser(u);
-    setPermissions(perms || []);
-    setAccessToken(accessToken);
+    setPermissions(perms);
+    setAccessToken(token);
 
     return res;
   }, []);
@@ -75,6 +80,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("fleet_permissions");
     setUser(null);
     setPermissions([]);
+    setAccessToken(null);
   }, []);
 
   const hasPermission = useCallback((key) => permissions.includes(key), [permissions]);

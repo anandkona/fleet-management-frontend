@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import {
   DirectionsCar, Person, Build, DirectionsCarFilled,
-  LocalShipping, Inventory, Refresh,
+  LocalShipping, Inventory, Refresh, Dashboard as DashboardIcon,
 } from '@mui/icons-material';
 import { StatCard, StatusChip, PageHeader } from '../components/Common';
 import { StatusPieChart, TypeBarChart, ExpiryAlertCard } from '../components/DashboardCharts';
@@ -130,6 +130,7 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         subtitle="Your fleet at a glance"
+        icon={DashboardIcon}
         action={
           <Tooltip title="Refresh data">
             <span>

@@ -4,7 +4,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   MenuItem, Stack, TableContainer, Avatar, Typography,
 } from '@mui/material';
-import { Add, Edit } from '@mui/icons-material';
+import { Add, Edit, People } from '@mui/icons-material';
 import { userService, roleService } from '../services/api';
 import { StatusChip, PageHeader, EmptyState } from '../components/Common';
 import { useAuth } from '../context/AuthContext';
@@ -88,6 +88,7 @@ export default function UsersPage() {
       <PageHeader
         title="Users"
         subtitle="Manage system users"
+        icon={People}
         action={hasPermission('user_create') ? (
           <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add User</Button>
         ) : null}

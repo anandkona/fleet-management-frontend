@@ -10,7 +10,7 @@ import { useTheme } from '@mui/material/styles';
 import {
   Menu as MenuIcon, Dashboard, DirectionsCar, Person, People, Shield,
   Logout, Inventory2, LocalShipping, Category, ExpandLess, ExpandMore,
-  LocalGasStation, Route, BuildCircle, Receipt, AccountBalance,
+  LocalGasStation, Route,   BuildCircle, Build, Receipt, AccountBalance,
   Assessment, Settings,  AdminPanelSettings
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -26,9 +26,9 @@ const NAV = [
   { label: 'Fuel', path: '/fuel', icon: <LocalGasStation />, perm: 'fuel_view' },
   { label: 'Trips', path: '/trips', icon: <Route />, perm: 'trip_view' },
   { label: 'Repairs', path: '/repairs', icon: <BuildCircle />, perm: 'repair_view' },
+  { label: 'Maintenance', path: '/maintenance', icon: <Build />, perm: 'repair_view' },
   { label: 'Expense', path: '/expense', icon: <Receipt />, perm: 'expense_view' },
   { label: 'Finance', path: '/finance', icon: <AccountBalance />, perm: 'finance_view' },
-  { label: 'Reports', path: '/reports', icon: <Assessment />, perm: 'report_view' },
   {
     label: 'Master', icon: <AdminPanelSettings />,
     children: [
@@ -122,7 +122,7 @@ export default function Layout() {
                   <ListItemIcon sx={{ minWidth: 36, color: active ? PALETTE.teal : 'rgba(255,255,255,0.45)' }}>
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: active ? 700 : 500, fontSize: '0.88rem' }} />
+                  <ListItemText primary={item.label} sx={{ '& .MuiTypography-root': { color: 'inherit' } }} primaryTypographyProps={{ fontWeight: active ? 700 : 500, fontSize: '0.88rem' }} />
                   {openItems[item.label] ? <ExpandLess sx={{ color: 'rgba(255,255,255,0.45)' }} /> : <ExpandMore sx={{ color: 'rgba(255,255,255,0.45)' }} />}
                 </ListItemButton>
                 <Collapse in={openItems[item.label]} timeout="auto" unmountOnExit>
@@ -143,7 +143,7 @@ export default function Layout() {
                           <ListItemIcon sx={{ minWidth: 30, color: childActive ? PALETTE.teal : 'rgba(255,255,255,0.35)' }}>
                             {child.icon}
                           </ListItemIcon>
-                          <ListItemText primary={child.label} primaryTypographyProps={{ fontWeight: childActive ? 600 : 400, fontSize: '0.82rem' }} />
+                          <ListItemText primary={child.label} sx={{ '& .MuiTypography-root': { color: 'inherit' } }} primaryTypographyProps={{ fontWeight: childActive ? 600 : 400, fontSize: '0.82rem' }} />
                         </ListItemButton>
                       );
                     })}
@@ -167,7 +167,7 @@ export default function Layout() {
               <ListItemIcon sx={{ minWidth: 36, color: active ? PALETTE.teal : 'rgba(255,255,255,0.45)' }}>
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: active ? 700 : 500, fontSize: '0.88rem' }} />
+              <ListItemText primary={item.label} sx={{ '& .MuiTypography-root': { color: 'inherit' } }} primaryTypographyProps={{ fontWeight: active ? 700 : 500, fontSize: '0.88rem' }} />
               {active && <Box sx={{ width: 3, height: 14, borderRadius: 2, bgcolor: PALETTE.teal }} />}
             </ListItemButton>
           );
@@ -260,7 +260,7 @@ export default function Layout() {
       {/* Right side */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100vh' }}>
         {/* Top bar */}
-        <Box sx={{ height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', px: { xs: 1, sm: 3 }, bgcolor: '#ffffff75', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', px: { xs: 1, sm: 3 }, bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>
           {isMobile && (
             <IconButton onClick={() => setMobileOpen(true)} sx={{ mr: 0.5 }}>
               <MenuIcon />
@@ -286,7 +286,7 @@ export default function Layout() {
         </Box>
 
         {/* Content */}
-        <Box sx={{ flex: 1, overflow: 'auto', bgcolor: '#F5F7FA' }}>
+        <Box sx={{ flex: 1, overflow: 'auto', bgcolor: 'background.default' }}>
           <Box sx={{ px: { xs: 1, sm: 3 }, py: { xs: 1.5, sm: 3 }, minWidth: 0 }}>
             <Outlet />
           </Box>
@@ -298,7 +298,7 @@ export default function Layout() {
       onClose={handleCancelLogout}
       PaperProps={{
         sx: {
-          bgcolor: '#fff',
+          bgcolor: 'background.paper',
           borderRadius: 1,
           minWidth: 320,
         }

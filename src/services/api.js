@@ -18,6 +18,7 @@ api.interceptors.response.use((response) => response, (error) => {
     localStorage.removeItem('fleet_token');
     localStorage.removeItem('fleet_user');
     localStorage.removeItem('fleet_refresh_token');
+    localStorage.removeItem('fleet_permissions');
     window.location.href = '/login';
   }
   return Promise.reject(error);
@@ -113,6 +114,24 @@ export const tripService = {
   complete: (id, data) => api.post(`/trips/${id}/complete`, data),
   cancel: (id, data) => api.post(`/trips/${id}/cancel`, data),
   history: (id) => api.get(`/trips/${id}/history`),
+};
+
+// ─── REPAIRS ────────────────────────────────────────────────────────────────
+export const repairService = {
+  getAll: (params) => api.get('/repairs', { params }),
+  getById: (id) => api.get(`/repairs/${id}`),
+  create: (data) => api.post('/repairs', data),
+  update: (id, data) => api.patch(`/repairs/${id}`, data),
+  delete: (id) => api.delete(`/repairs/${id}`),
+};
+
+// ─── MAINTENANCE ────────────────────────────────────────────────────────────
+export const maintenanceService = {
+  getAll: (params) => api.get('/maintenance', { params }),
+  getById: (id) => api.get(`/maintenance/${id}`),
+  create: (data) => api.post('/maintenance', data),
+  update: (id, data) => api.patch(`/maintenance/${id}`, data),
+  delete: (id) => api.delete(`/maintenance/${id}`),
 };
 
 // ─── ASSET CATEGORIES ────────────────────────────────────────────────────────

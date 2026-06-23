@@ -253,6 +253,7 @@ export default function TripsPage() {
       <PageHeader
         title="Trips"
         subtitle={`${total} trips recorded`}
+        icon={Route}
         action={
           <Stack direction="row" spacing={1}>
             <Button startIcon={<Refresh />} onClick={refetch} variant="outlined" size="small">Refresh</Button>

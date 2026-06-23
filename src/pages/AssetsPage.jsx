@@ -167,6 +167,7 @@ export default function AssetsPage() {
       <PageHeader
         title="Assets"
         subtitle="Manage fleet assets, equipment & categories"
+        icon={Inventory}
         action={
           tab === 0 ? (
             hasPermission('asset_create') ? (
