@@ -8,6 +8,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
@@ -41,6 +42,7 @@ export default function VehiclesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
   const [viewRecord, setViewRecord] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
@@ -74,6 +76,12 @@ export default function VehiclesPage() {
       toast('Vehicle added');
     }
     closeForm();
+  };
+
+  const handleDelete = () => {
+    setRows(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
+    toast('Vehicle deleted');
   };
 
   const toast = (msg, severity = 'success') => setSnack({ open: true, msg, severity });
@@ -116,11 +124,12 @@ export default function VehiclesPage() {
       renderCell: ({ value }) => <Typography variant="body2" color="text.secondary">{value || 'Unassigned'}</Typography>,
     },
     {
-      field: 'actions', headerName: 'Actions', width: 90, sortable: false,
+      field: 'actions', headerName: 'Actions', width: 120, sortable: false,
       renderCell: ({ row }) => (
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="View"><IconButton size="small" onClick={() => setViewRecord(row)}><VisibilityOutlinedIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>
           <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(row)}><EditOutlinedIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>
+          <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => setDeleteId(row.id)}><DeleteOutlineIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>
         </Stack>
       ),
     },
@@ -289,6 +298,25 @@ export default function VehiclesPage() {
             </Box>
             <Stack direction="row" justifyContent="flex-end" sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
               <Button onClick={() => setViewRecord(null)} variant="outlined" size="small">Close</Button>
+            </Stack>
+          </Card>
+        </Box>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteId && (
+        <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300 }}>
+          <Card sx={{ width: '100%', maxWidth: 400, borderRadius: 2 }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>Delete Vehicle</Typography>
+              <IconButton size="small" onClick={() => setDeleteId(null)}><CloseIcon fontSize="small" /></IconButton>
+            </Stack>
+            <Box sx={{ p: 3 }}>
+              <Typography variant="body2" color="text.secondary">Are you sure you want to delete this vehicle? This action cannot be undone.</Typography>
+            </Box>
+            <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+              <Button onClick={() => setDeleteId(null)} variant="outlined" size="small">Cancel</Button>
+              <Button onClick={handleDelete} variant="contained" color="error" size="small">Delete</Button>
             </Stack>
           </Card>
         </Box>
