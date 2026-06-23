@@ -1,11 +1,9 @@
-import React from 'react';
-import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-} from 'recharts';
+import React, { useMemo } from 'react';
 import { Card, CardContent, Typography, Box, Skeleton, Stack } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { PALETTE } from '../theme';
+import EChart from './EChart';
+import { useThemeSettings } from '../context/ThemeContext';
 
 const CHART_COLORS = [
   PALETTE.teal, '#7C6FF7', PALETTE.amber, PALETTE.coral,
@@ -36,72 +34,69 @@ function formatStatus(status) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-const CustomTooltip = ({ active, payload }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <Box sx={{
-      bgcolor: PALETTE.navy, color: '#fff', px: 1.5, py: 1, borderRadius: 1,
-      fontSize: '0.8rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    }}>
-      <Typography variant="caption" sx={{ fontWeight: 600 }}>{payload[0].name || payload[0].payload?.name}</Typography>
-      <Typography variant="body2" sx={{ fontWeight: 700 }}>{payload[0].value}</Typography>
-    </Box>
-  );
-};
-
-const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-  if (percent < 0.05) return null;
-  const RADIAN = Math.PI / 180;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  return (
-    <text x={x} y={y} fill="#fff" textAnchor="middle" dominantBaseline="central" fontWeight={700} fontSize={12}>
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
-
 export function StatusPieChart({ data, title, loading }) {
-  const chartData = Object.entries(data || {})
+  const { settings } = useThemeSettings();
+  const isDark = settings?.mode === 'dark';
+
+  const chartData = useMemo(() => Object.entries(data || {})
     .filter(([, val]) => val > 0)
-    .map(([key, val]) => ({ name: formatStatus(key), value: val, color: STATUS_COLORS[key] || '#6B7A8D' }));
+    .map(([key, val]) => ({ name: formatStatus(key), value: val, color: STATUS_COLORS[key] || '#6B7A8D' })),
+  [data]);
+
+  const option = useMemo(() => ({
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: isDark ? '#1e293b' : '#0f172a',
+      borderColor: 'transparent',
+      textStyle: { color: '#fff', fontSize: 12, fontFamily: 'Nunito' },
+      formatter: '{b}: {c} ({d}%)',
+    },
+    legend: {
+      bottom: 0,
+      itemWidth: 8,
+      itemHeight: 8,
+      itemGap: 12,
+      textStyle: { color: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontFamily: 'Nunito' },
+    },
+    series: [{
+      type: 'pie',
+      radius: ['45%', '75%'],
+      center: ['50%', '45%'],
+      avoidLabelOverlap: false,
+      padAngle: 3,
+      itemStyle: { borderRadius: 6 },
+      label: {
+        show: true,
+        position: 'center',
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 16,
+          fontWeight: 'bold',
+          fontFamily: 'Nunito',
+          color: isDark ? '#f1f5f9' : '#020617',
+        },
+      },
+      labelLine: { show: false },
+      data: chartData.map((item) => ({
+        value: item.value,
+        name: item.name,
+        itemStyle: { color: item.color },
+      })),
+    }],
+  }), [chartData, isDark]);
 
   return (
     <Card sx={{ height: '100%' }}>
       <CardContent>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>{title}</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'text.primary' }}>{title}</Typography>
         {loading ? (
           <Skeleton variant="circular" width={200} height={200} sx={{ mx: 'auto' }} />
         ) : chartData.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>No data available</Typography>
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={55}
-                outerRadius={95}
-                paddingAngle={3}
-                dataKey="value"
-                labelLine={false}
-                label={renderCustomLabel}
-              >
-                {chartData.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} stroke="none" />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <Legend
-                verticalAlign="bottom"
-                iconType="circle"
-                iconSize={8}
-                formatter={(value) => <span style={{ color: PALETTE.text, fontSize: '0.75rem', fontWeight: 500 }}>{value}</span>}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <EChart option={option} style={{ height: 260 }} />
         )}
       </CardContent>
     </Card>
@@ -109,32 +104,75 @@ export function StatusPieChart({ data, title, loading }) {
 }
 
 export function TypeBarChart({ data, title, loading, color = PALETTE.teal }) {
-  const chartData = Object.entries(data || {})
+  const { settings } = useThemeSettings();
+  const isDark = settings?.mode === 'dark';
+
+  const chartData = useMemo(() => Object.entries(data || {})
     .filter(([, val]) => val > 0)
-    .map(([key, val]) => ({ name: key || 'Unknown', count: val }));
+    .map(([key, val]) => ({ name: key || 'Unknown', value: val })),
+  [data]);
+
+  const categories = chartData.map((d) => d.name);
+  const values = chartData.map((d) => d.value);
+
+  const option = useMemo(() => ({
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: isDark ? '#1e293b' : '#0f172a',
+      borderColor: 'transparent',
+      textStyle: { color: '#fff', fontSize: 12, fontFamily: 'Nunito' },
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '8%',
+      top: '5%',
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      data: categories,
+      axisLine: { lineStyle: { color: isDark ? '#334155' : '#e2e8f0' } },
+      axisLabel: { color: isDark ? '#94a3b8' : '#64748b', fontSize: 11, fontFamily: 'Nunito' },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: isDark ? '#1e293b' : '#f1f5f9', type: 'dashed' } },
+      axisLabel: { color: isDark ? '#94a3b8' : '#64748b', fontSize: 11, fontFamily: 'Nunito' },
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    series: [{
+      type: 'bar',
+      data: values.map((val, i) => ({
+        value: val,
+        itemStyle: {
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: CHART_COLORS[i % CHART_COLORS.length] },
+              { offset: 1, color: `${CHART_COLORS[i % CHART_COLORS.length]}88` },
+            ],
+          },
+          borderRadius: [6, 6, 0, 0],
+        },
+      })),
+      barWidth: '45%',
+    }],
+  }), [categories, values, isDark]);
 
   return (
     <Card sx={{ height: '100%' }}>
       <CardContent>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>{title}</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'text.primary' }}>{title}</Typography>
         {loading ? (
           <Stack spacing={1}>{Array(3).fill(0).map((_, i) => <Skeleton key={i} height={40} />)}</Stack>
         ) : chartData.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>No data available</Typography>
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6B7A8D' }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6B7A8D' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={48}>
-                {chartData.map((_, i) => (
-                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <EChart option={option} style={{ height: 260 }} />
         )}
       </CardContent>
     </Card>
@@ -159,7 +197,7 @@ export function ExpiryAlertCard({ documents, loading }) {
     <Card sx={{ height: '100%' }}>
       <CardContent>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Expiry Alerts</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>Expiry Alerts</Typography>
           {alerts.length > 0 && (
             <Box sx={{
               bgcolor: alerts.some((a) => a.expiryDate < now) ? '#FFEEEE' : '#FEF6E7',
@@ -188,7 +226,7 @@ export function ExpiryAlertCard({ documents, loading }) {
                   bgcolor: isExpired ? alpha(PALETTE.coral, 0.04) : alpha(PALETTE.amber, 0.04),
                 }}>
                   <Box>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: PALETTE.navy }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
                       {doc.documentType}
                     </Typography>
                     <Typography variant="caption" display="block" color="text.secondary">
@@ -221,7 +259,7 @@ export function SummaryRow({ items, loading }) {
               <Skeleton width={60} height={32} sx={{ mx: 'auto' }} />
             ) : (
               <>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: item.color || PALETTE.navy }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: item.color || 'text.primary' }}>
                   {item.value ?? '—'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
