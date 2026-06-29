@@ -5,6 +5,7 @@ const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1`;
 const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 10000,
 });
 
 api.interceptors.request.use((config) => {
@@ -19,7 +20,6 @@ api.interceptors.response.use((response) => response, (error) => {
     localStorage.removeItem('fleet_user');
     localStorage.removeItem('fleet_refresh_token');
     localStorage.removeItem('fleet_permissions');
-    window.location.href = '/login';
   }
   return Promise.reject(error);
 });
@@ -48,6 +48,26 @@ export const vehicleService = {
   create: (data) => api.post('/vehicles', data),
   update: (id, data) => api.patch(`/vehicles/${id}`, data),
   updateStatus: (id, status) => api.patch(`/vehicles/${id}/status`, { status }),
+};
+
+// ─── VEHICLE COMPLIANCE ────────────────────────────────────────────────────────
+export const vehicleComplianceService = {
+  getDocuments: (vehicleId) => api.get(`/vehicle/${vehicleId}/compliance/documents`),
+  getHistory: (vehicleId) => api.get(`/vehicle/${vehicleId}/compliance/history`),
+  updateFastag: (vehicleId, data) => api.post(`/vehicle/${vehicleId}/compliance/fastag`, data),
+  updateFitness: (vehicleId, data) => api.post(`/vehicle/${vehicleId}/compliance/fitness`, data),
+  updateInsurance: (vehicleId, data) => api.post(`/vehicle/${vehicleId}/compliance/insurance`, data),
+  updatePermits: (vehicleId, data) => api.post(`/vehicle/${vehicleId}/compliance/permits`, data),
+  updatePuc: (vehicleId, data) => api.post(`/vehicle/${vehicleId}/compliance/puc`, data),
+  updateRegistration: (vehicleId, data) => api.post(`/vehicle/${vehicleId}/compliance/registration`, data),
+  updateRoadTax: (vehicleId, data) => api.post(`/vehicle/${vehicleId}/compliance/road-tax`, data),
+  updateGpsDevice: (vehicleId, data) => api.post(`/vehicle/${vehicleId}/compliance/gps-device`, data),
+};
+
+export const complianceAlertsService = {
+  getExpiring: () => api.get('/compliance/alerts/expiring'),
+  getExpired: () => api.get('/compliance/alerts/expired'),
+  getDashboard: () => api.get('/compliance/dashboard'),
 };
 
 // ─── DRIVERS ─────────────────────────────────────────────────────────────────
@@ -92,6 +112,12 @@ export const assetService = {
   create: (data) => api.post('/assets', data),
   update: (id, data) => api.patch(`/assets/${id}`, data),
   updateStatus: (id, currentStatus) => api.patch(`/assets/${id}/status`, { currentStatus }),
+  assign: (id, data) => api.post(`/assets/${id}/assign`, data),
+  returnAsset: (id, data) => api.post(`/assets/${id}/return`, data),
+  transfer: (id, data) => api.post(`/assets/${id}/transfer`, data),
+  markDamaged: (id, data) => api.post(`/assets/${id}/mark-damaged`, data),
+  markLost: (id, data) => api.post(`/assets/${id}/mark-lost`, data),
+  history: (id) => api.get(`/assets/${id}/history`),
 };
 
 // ─── FUEL ─────────────────────────────────────────────────────────────────────
@@ -101,6 +127,11 @@ export const fuelService = {
   create: (data) => api.post('/fuel', data),
   update: (id, data) => api.patch(`/fuel/${id}`, data),
   delete: (id) => api.delete(`/fuel/${id}`),
+  extractReceipt: (data) => api.post('/fuel/extract-receipt', data),
+  submit: (id) => api.post(`/fuel/${id}/submit`),
+  approve: (id) => api.post(`/fuel/${id}/approve`),
+  reject: (id) => api.post(`/fuel/${id}/reject`),
+  cancel: (id) => api.post(`/fuel/${id}/cancel`),
 };
 
 // ─── TRIPS ────────────────────────────────────────────────────────────────────
@@ -123,6 +154,9 @@ export const repairService = {
   create: (data) => api.post('/repairs', data),
   update: (id, data) => api.patch(`/repairs/${id}`, data),
   delete: (id) => api.delete(`/repairs/${id}`),
+  start: (id) => api.post(`/repairs/${id}/start`),
+  complete: (id) => api.post(`/repairs/${id}/complete`),
+  cancel: (id) => api.post(`/repairs/${id}/cancel`),
 };
 
 // ─── MAINTENANCE ────────────────────────────────────────────────────────────
@@ -132,6 +166,10 @@ export const maintenanceService = {
   create: (data) => api.post('/maintenance', data),
   update: (id, data) => api.patch(`/maintenance/${id}`, data),
   delete: (id) => api.delete(`/maintenance/${id}`),
+  submit: (id) => api.post(`/maintenance/${id}/submit`),
+  approve: (id) => api.post(`/maintenance/${id}/approve`),
+  reject: (id) => api.post(`/maintenance/${id}/reject`),
+  cancel: (id) => api.post(`/maintenance/${id}/cancel`),
 };
 
 // ─── ASSET CATEGORIES ────────────────────────────────────────────────────────
@@ -147,6 +185,20 @@ export const documentService = {
   create: (data) => api.post('/documents', data),
   update: (id, data) => api.patch(`/documents/${id}`, data),
   delete: (id) => api.delete(`/documents/${id}`),
+  upload: (formData) => api.post('/documents/upload', formData),
+  verify: (id) => api.post(`/documents/${id}/verify`),
+  archive: (id) => api.post(`/documents/${id}/archive`),
+  download: (id) => api.get(`/documents/${id}/download`, { responseType: 'blob' }),
+};
+
+// ─── FINANCE ──────────────────────────────────────────────────────────────────
+export const financeService = {
+  getPnL: (params) => api.get('/finance/pnl', { params }),
+  getTransactions: (params) => api.get('/finance/transactions', { params }),
+  createTransaction: (data) => api.post('/finance/transactions', data),
+  updateTransactionStatus: (id, status) => api.patch(`/finance/transactions/${id}/status`, { status }),
+  getVendors: (params) => api.get('/finance/vendors', { params }),
+  createVendor: (data) => api.post('/finance/vendors', data),
 };
 
 // ─── ROLES (standalone functions) ───────────────────────────────────────────
