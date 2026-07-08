@@ -7,11 +7,12 @@ import {
 import { ConfirmDialog } from '../components/Common';
 import PeopleIcon from '@mui/icons-material/People';
 import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SearchIcon from '@mui/icons-material/Search';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const fallbackDrivers = [
   { id: 1, name: 'Rajesh Kumar', email: 'rajesh@fleet.com', phone: '9876543210', licenseNumber: 'DL-2021-4521', assignedVehicle: 'AP05-T123', status: 'active' },
@@ -32,6 +33,7 @@ export default function DriversPage() {
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, driver: null });
   const { hasPermission } = useAuth();
+  const { addNotification } = useNotification();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -53,9 +55,11 @@ export default function DriversPage() {
       if (editDriver) {
         await api.patch(`/drivers/${editDriver.id || editDriver._id}`, form);
         setSnack({ open: true, msg: 'Driver updated', severity: 'success' });
+        addNotification('Success', 'Driver updated successfully', 'success');
       } else {
         await api.post('/drivers', form);
         setSnack({ open: true, msg: 'Driver created', severity: 'success' });
+        addNotification('Success', 'Driver created successfully', 'success');
       }
       setOpenDialog(false);
       setEditDriver(null);
@@ -63,6 +67,7 @@ export default function DriversPage() {
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Failed to save driver. Check mobile number length (min 10) and license format.');
+      addNotification('Error', 'Failed to save driver', 'error');
     }
   };
 
@@ -77,14 +82,17 @@ export default function DriversPage() {
       if (typeof d.id === 'number') {
         setDrivers(prev => prev.filter(driver => driver.id !== d.id));
         setSnack({ open: true, msg: 'Driver deleted successfully', severity: 'success' });
+        addNotification('Deleted', 'Driver deleted successfully', 'warning');
       } else {
         await api.delete(`/drivers/${d.id || d._id}`);
         setSnack({ open: true, msg: 'Driver deleted successfully', severity: 'success' });
+        addNotification('Deleted', 'Driver deleted successfully', 'warning');
         fetchData();
       }
     } catch (err) {
       console.error(err);
       setSnack({ open: true, msg: err.response?.data?.message || 'Failed to delete driver', severity: 'error' });
+      addNotification('Error', 'Failed to delete driver', 'error');
     } finally {
       setDeleteConfirm({ open: false, driver: null });
     }
@@ -104,12 +112,7 @@ export default function DriversPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', mb: 3, gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <PeopleIcon sx={{ color: '#1976d2' }} />
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>Drivers</Typography>
-          <Chip label={drivers.length} size="small" sx={{ ml: 1, backgroundColor: '#1976d2', color: '#fff', borderRadius: '12px', height: '22px', fontSize: '0.7rem', fontWeight: 600 }} />
-        </Box>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'flex-end', mb: 3, gap: 2 }}>
         <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
           <TextField size="small" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
             InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, mr: 0.5, color: 'text.primary' }} /> }}
@@ -119,7 +122,7 @@ export default function DriversPage() {
         </Box>
       </Box>
 
-      <Card sx={{ p: 0, overflowX: 'auto', maxHeight: 470, overflowY: 'auto', '&::-webkit-scrollbar': { width: 0, height: 0 } }}>
+      <Card sx={{ p: 0, overflowX: 'auto', maxHeight: 500, overflowY: 'auto', '&::-webkit-scrollbar': { width: 0, height: 0 } }}>
         {loading ? <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Box> : (
           <Table size="small" stickyHeader>
             <TableHead>
@@ -146,8 +149,8 @@ export default function DriversPage() {
                       sx={{ fontSize: '0.65rem', fontWeight: 700 }} />
                   </TableCell>
                   <TableCell>
-                    {hasPermission('driver_update') && <IconButton size="small" onClick={() => handleEdit(d)} sx={{ color: '#60a5fa' }}><EditIcon fontSize="small" /></IconButton>}
-                    {hasPermission('driver_delete') && <IconButton size="small" onClick={() => handleDeleteClick(d)} sx={{ color: '#ef4444' }}><DeleteIcon fontSize="small" /></IconButton>}
+                    <IconButton size="small" onClick={() => handleEdit(d)}><EditOutlinedIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton>
+                    <IconButton size="small" onClick={() => handleDeleteClick(d)}><DeleteOutlineIcon sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -158,7 +161,7 @@ export default function DriversPage() {
       </Card>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
-        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>{editDriver ? 'Edit Driver' : 'Add New Driver'}</DialogTitle>
+        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>{editDriver ? 'EditOutlined Driver' : 'Add New Driver'}</DialogTitle>
         <DialogContent sx={{ bgcolor: 'background.paper', pt: 2 }}>
           {error && <Typography color="error" variant="body2" sx={{ mb: 2 }}>{error}</Typography>}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>

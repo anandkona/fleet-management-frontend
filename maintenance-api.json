@@ -1,0 +1,253 @@
+{
+  "paths": {
+    "/maintenance": {
+      "get": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "List maintenance requests",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated maintenance requests"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Create maintenance request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "vehicleId",
+                  "requestDate",
+                  "category",
+                  "description"
+                ],
+                "properties": {
+                  "vehicleId": {
+                    "type": "string"
+                  },
+                  "tripId": {
+                    "type": "string"
+                  },
+                  "driverId": {
+                    "type": "string"
+                  },
+                  "requestDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "LOW",
+                      "MEDIUM",
+                      "HIGH",
+                      "CRITICAL"
+                    ]
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "estimatedCost": {
+                    "type": "number"
+                  },
+                  "actualCost": {
+                    "type": "number"
+                  },
+                  "scheduledDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "completedDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Maintenance request created"
+          }
+        }
+      }
+    },
+    "/maintenance/{id}": {
+      "get": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Get maintenance request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Maintenance request"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Update maintenance request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Maintenance request updated"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Cancel maintenance request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Maintenance request cancelled"
+          }
+        }
+      }
+    },
+    "/maintenance/{id}/submit": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Submit maintenance request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Maintenance request submitted"
+          }
+        }
+      }
+    },
+    "/maintenance/{id}/approve": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Approve maintenance request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Maintenance request approved"
+          }
+        }
+      }
+    },
+    "/maintenance/{id}/reject": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Reject maintenance request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Maintenance request rejected"
+          }
+        }
+      }
+    },
+    "/maintenance/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Cancel maintenance request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Maintenance request cancelled"
+          }
+        }
+      }
+    }
+  }
+}

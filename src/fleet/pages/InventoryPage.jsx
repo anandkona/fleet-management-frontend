@@ -2,40 +2,57 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Card, Typography, Table, TableBody, TableCell, TableRow, TableHead,
   Chip, IconButton, CircularProgress, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, LinearProgress, useTheme, useMediaQuery
+  DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, LinearProgress, useTheme, useMediaQuery, Tabs, Tab
 } from '@mui/material';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
 import HistoryIcon from '@mui/icons-material/History';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import WarningIcon from '@mui/icons-material/Warning';
-import { Menu, ListItemIcon, ListItemText, Snackbar, Alert, List, ListItem, Divider } from '@mui/material';
+import { Menu, ListItemIcon, ListItemText, Snackbar, Alert, List, ListItem, Divider, Stack, Tooltip } from '@mui/material';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
+
+const fallbackCategories = [];
 
 const fallbackAssets = [
-  { id: 1, name: 'Brake Pads (Front)', category: 'Spare Part', quantity: 12, status: 'In Stock' },
-  { id: 2, name: 'Oil Filter - 5W30', category: 'Consumable', quantity: 34, status: 'In Stock' },
-  { id: 3, name: 'Spare Tyre 10R20', category: 'Spare Part', quantity: 8, status: 'In Stock' },
-  { id: 4, name: 'Hydraulic Jack 3T', category: 'Tool', quantity: 4, status: 'In Stock' },
-  { id: 5, name: 'LED Headlamp Assembly', category: 'Spare Part', quantity: 6, status: 'In Stock' },
-  { id: 6, name: 'Air Filter Element', category: 'Consumable', quantity: 22, status: 'In Stock' },
-  { id: 7, name: 'Battery 12V 100Ah', category: 'Spare Part', quantity: 5, status: 'Low Stock' },
-  { id: 8, name: 'Wheel Spanner Set', category: 'Tool', quantity: 3, status: 'In Stock' },
+  { id: '1', _id: '1', assetCode: 'ASSET-010', name: 'Tire Pressure Gauge Digital', assetCategory: { name: 'Tools & Equipment' }, serialNumber: 'TP-2024-010', currentStatus: 'AVAILABLE' },
+  { id: '2', _id: '2', assetCode: 'ASSET-009', name: 'Mobile Tablet Mount', assetCategory: { name: 'Electronics' }, serialNumber: 'MT-2024-009', currentStatus: 'AVAILABLE' },
+  { id: '3', _id: '3', assetCode: 'ASSET-008', name: 'Tool Box Complete Set', assetCategory: { name: 'Tools & Equipment' }, serialNumber: 'TB-2023-008', currentStatus: 'DAMAGED' },
+  { id: '4', _id: '4', assetCode: 'ASSET-007', name: 'LED Warning Light Bar', assetCategory: { name: 'Safety Equipment' }, serialNumber: 'LW-2024-007', currentStatus: 'AVAILABLE' },
+  { id: '5', _id: '5', assetCode: 'ASSET-006', name: 'OBD2 Diagnostic Scanner', assetCategory: { name: 'Electronics' }, serialNumber: 'OB-2023-006', currentStatus: 'AVAILABLE' },
+  { id: '6', _id: '6', assetCode: 'ASSET-005', name: 'Dashcam 4K Front+Rear', assetCategory: { name: 'Electronics' }, serialNumber: 'DC-2024-005', currentStatus: 'AVAILABLE' },
+  { id: '7', _id: '7', assetCode: 'ASSET-004', name: 'Reflective Vest Set (5)', assetCategory: { name: 'Safety Equipment' }, serialNumber: 'RV-2024-004', currentStatus: 'AVAILABLE' },
+  { id: '8', _id: '8', assetCode: 'ASSET-003', name: 'Hydraulic Jack 3 Ton', assetCategory: { name: 'Tools & Equipment' }, serialNumber: 'HJ-2023-003', currentStatus: 'AVAILABLE' },
+  { id: '9', _id: '9', assetCode: 'ASSET-002', name: 'First Aid Kit Premium', assetCategory: { name: 'Safety Equipment' }, serialNumber: 'FA-2024-002', currentStatus: 'AVAILABLE' },
+  { id: '10', _id: '10', assetCode: 'ASSET-001', name: 'Fire Extinguisher 5kg', assetCategory: { name: 'Safety Equipment' }, serialNumber: 'FE-2024-001', currentStatus: 'AVAILABLE' }
 ];
 
 export default function InventoryPage() {
+  const { addNotification } = useNotification();
+  const [tabValue, setTabValue] = useState(0);
+
   const [assets, setAssets] = useState([]);
+  const [categoriesList, setCategoriesList] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
+  // Asset UI States
   const [openDialog, setOpenDialog] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: '', category: 'Spare Part', quantity: 0, status: 'In Stock' });
+  const [form, setForm] = useState({ assetCode: '', name: '', assetCategoryId: '', serialNumber: '', purchaseDate: '', purchaseAmount: 0, currentStatus: 'AVAILABLE', notes: '' });
+
+  // Category UI States
+  const [catOpenDialog, setCatOpenDialog] = useState(false);
+  const [editCatItem, setEditCatItem] = useState(null);
+  const [catForm, setCatForm] = useState({ name: '', key: '', description: '', status: 'ACTIVE' });
+
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
   const toast = (msg, severity = 'success') => setSnack({ open: true, msg, severity });
 
@@ -55,36 +72,118 @@ export default function InventoryPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/assets', { params: { limit: 100 } });
-      const items = res.data?.data?.items ?? (Array.isArray(res.data?.data) ? res.data.data : []);
-      setAssets(items.length > 0 ? items : fallbackAssets);
-    } catch (err) { console.error(err); setAssets(fallbackAssets); }
-    finally { setLoading(false); }
+      const [assetsRes, catsRes] = await Promise.allSettled([
+        api.get('/assets', { params: { limit: 100 } }),
+        api.get('/assets/categories')
+      ]);
+
+      if (assetsRes.status === 'fulfilled') {
+        const items = assetsRes.value.data?.data?.items ?? (Array.isArray(assetsRes.value.data?.data) ? assetsRes.value.data.data : []);
+        setAssets(items);
+      } else {
+        setAssets([...fallbackAssets]);
+      }
+
+      if (catsRes.status === 'fulfilled') {
+        const cats = catsRes.value.data?.data ?? [];
+        setCategoriesList(cats);
+      } else {
+        setCategoriesList([...fallbackCategories]);
+      }
+    } catch (err) {
+      console.error(err);
+      setAssets([...fallbackAssets]);
+      setCategoriesList([...fallbackCategories]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Asset Actions
   const handleSave = async () => {
     try {
       if (editItem) { await api.patch(`/assets/${editItem.id || editItem._id}`, form); }
       else { await api.post('/assets', form); }
+      toast('Asset saved successfully');
+      addNotification('Success', `Asset ${editItem ? 'updated' : 'created'} successfully`, 'success');
       setOpenDialog(false); setEditItem(null); fetchData();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast('Saved locally (Backend offline)', 'info');
+      if (editItem) {
+        const idx = fallbackAssets.findIndex(a => a.id === editItem.id || a._id === editItem._id);
+        if (idx >= 0) fallbackAssets[idx] = { ...fallbackAssets[idx], ...form };
+      } else {
+        fallbackAssets.push({ ...form, id: Date.now().toString(), _id: Date.now().toString(), assetCode: form.assetCode || `AST-${Date.now().toString().slice(-4)}` });
+      }
+      addNotification('Info', 'Saved locally (Backend offline)', 'info');
+      setOpenDialog(false); setEditItem(null); fetchData();
+    }
   };
 
   const handleDelete = async (item) => {
     if (!window.confirm(`Delete ${item.name}?`)) return;
-    try { await api.delete(`/assets/${item.id || item._id}`); fetchData(); } catch (err) { console.error(err); }
+    try {
+      await api.delete(`/assets/${item.id || item._id}`);
+      addNotification('Deleted', `Asset deleted successfully`, 'warning');
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      toast('Deleted locally (Backend offline)', 'info');
+      const idx = fallbackAssets.findIndex(a => a.id === item.id || a._id === item._id);
+      if (idx >= 0) fallbackAssets.splice(idx, 1);
+      fetchData();
+    }
+  };
+
+  // Category Actions
+  const handleCatSave = async () => {
+    try {
+      if (editCatItem) { await api.patch(`/assets/categories/${editCatItem.id || editCatItem._id}`, catForm); }
+      else { await api.post('/assets/categories', catForm); }
+      toast('Category saved successfully');
+      addNotification('Success', `Category ${editCatItem ? 'updated' : 'created'} successfully`, 'success');
+      setCatOpenDialog(false); setEditCatItem(null); fetchData();
+    } catch (err) {
+      console.error(err);
+      toast('Saved locally (Backend offline)', 'info');
+      if (editCatItem) {
+        const idx = fallbackCategories.findIndex(c => c.id === editCatItem.id || c._id === editCatItem._id);
+        if (idx >= 0) fallbackCategories[idx] = { ...fallbackCategories[idx], ...catForm };
+      } else {
+        fallbackCategories.push({ ...catForm, id: Date.now().toString(), _id: Date.now().toString(), _count: { assets: 0 } });
+      }
+      setCatOpenDialog(false); setEditCatItem(null); fetchData();
+    }
+  };
+
+  const handleCatDelete = async (cat) => {
+    if (!window.confirm(`Delete category ${cat.name}?`)) return;
+    try {
+      await api.delete(`/assets/categories/${cat.id || cat._id}`);
+      addNotification('Deleted', `Category deleted successfully`, 'warning');
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      toast('Deleted locally (Backend offline)', 'info');
+      const idx = fallbackCategories.findIndex(c => c.id === cat.id || c._id === cat._id);
+      if (idx >= 0) fallbackCategories.splice(idx, 1);
+      fetchData();
+    }
   };
 
   const handleAction = async (actionPath, payload) => {
     try {
       await api.post(actionPath, payload);
       toast('Action successful');
+      addNotification('Success', 'Inventory action successful', 'success');
       fetchData();
     } catch (err) {
       console.error(err);
       toast(`Failed: ${err.response?.data?.message || err.message}`, 'error');
+      addNotification('Error', 'Failed to perform inventory action', 'error');
     }
   };
 
@@ -110,91 +209,166 @@ export default function InventoryPage() {
     }
   };
 
-  const categories = {};
-  assets.forEach(a => {
-    const cat = a.category || 'Other';
-    if (!categories[cat]) categories[cat] = { count: 0, available: 0 };
-    categories[cat].count += a.quantity || 1;
-    if (a.status === 'In Stock' || a.status === 'available') categories[cat].available += a.quantity || 1;
-  });
-
   return (
     <Box>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', mb: 3, gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <InventoryIcon sx={{ color: '#1976d2' }} />
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>Asset Inventory</Typography>
-          <Chip label={assets.length} size="small" sx={{ ml: 1, backgroundColor: '#1976d2', color: '#fff', borderRadius: '12px', height: '22px', fontSize: '0.7rem', fontWeight: 600 }} />
-        </Box>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'flex-end', mb: 3, gap: 2 }}>
         <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
-          <IconButton onClick={fetchData} sx={{ color: 'text.primary', border: { xs: '1px solid', sm: 'none' }, borderColor: 'divider', borderRadius: 1.5 }}><RefreshIcon /></IconButton>
-          {hasPermission('asset_create') && <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditItem(null); setForm({ name: '', category: 'Spare Part', quantity: 0, status: 'In Stock' }); setOpenDialog(true); }}
-            sx={{ backgroundColor: '#1976d2', flex: { xs: 1, sm: 'none' } }}>Add Item</Button>}
+          {tabValue === 0 && hasPermission('asset_create') && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditItem(null); setForm({ assetCode: '', name: '', assetCategoryId: categoriesList[0]?.id || '', serialNumber: '', purchaseDate: new Date().toISOString().split('T')[0], purchaseAmount: 0, currentStatus: 'AVAILABLE', notes: '' }); setOpenDialog(true); }}
+              sx={{ backgroundColor: '#1976d2', flex: { xs: 1, sm: 'none' } }}>Add Asset</Button>
+          )}
+          {tabValue === 1 && hasPermission('asset_create') && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditCatItem(null); setCatForm({ name: '', key: '', description: '', status: 'ACTIVE' }); setCatOpenDialog(true); }}
+              sx={{ backgroundColor: '#1976d2', flex: { xs: 1, sm: 'none' } }}>Add Category</Button>
+          )}
         </Box>
       </Box>
 
-      {/* Category Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2, mb: 3 }}>
-        {Object.entries(categories).map(([cat, data]) => (
-          <Card key={cat} sx={{ p: 2 }}>
-            <Typography sx={{ color: '#71717a', fontSize: '0.7rem', fontWeight: 700 }}>{cat.toUpperCase()}</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.5 }}>{data.count}</Typography>
-            <Typography sx={{ color: '#4ade80', fontSize: '0.75rem', fontWeight: 600 }}>{data.available} available</Typography>
-            <LinearProgress variant="determinate" value={data.count > 0 ? (data.available / data.count) * 100 : 0}
-              sx={{ mt: 1, height: 4, borderRadius: 2, backgroundColor: '#2e2e38', '& .MuiLinearProgress-bar': { backgroundColor: '#10b981' } }} />
-          </Card>
-        ))}
-        {Object.keys(categories).length === 0 && !loading && (
-          <Card sx={{ p: 3, gridColumn: '1 / -1', textAlign: 'center' }}>
-            <Typography sx={{ color: 'text.primary' }}>No inventory items found. Add items or check backend.</Typography>
-          </Card>
-        )}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={tabValue} onChange={(e, nv) => setTabValue(nv)} sx={{ '& .MuiTab-root': { fontWeight: 600 } }}>
+          <Tab label="Assets" />
+          <Tab label="Categories" />
+        </Tabs>
       </Box>
 
-      {/* Table */}
-      <Card sx={{ p: 0, overflowX: 'auto', maxHeight: 390, overflowY: 'auto', '&::-webkit-scrollbar': { width: 0, height: 0 } }}>
-        {loading ? <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Box> : (
-          <Table size="small" stickyHeader>
-            <TableHead>
-              <TableRow>
-                {['S.NO', 'Name', 'Category', 'Quantity', 'Status', 'Actions'].map(h => (
-                  <TableCell key={h} sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2', borderBottom: '1px solid', borderColor: 'divider' }}>{h}</TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {assets.map((a, i) => (
-                <TableRow key={i} hover sx={{ '&:hover': { backgroundColor: '#1e1e2420' } }}>
-                  <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{i + 1}</TableCell>
-                  <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{a.name}</TableCell>
-                  <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{a.category || '—'}</TableCell>
-                  <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{a.quantity || '—'}</TableCell>
-                  <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <Chip label={(a.status || 'In Stock').toUpperCase()} size="small"
-                      color={a.status === 'In Stock' || a.status === 'available' ? 'success' : a.status === 'Low Stock' ? 'warning' : 'default'}
-                      sx={{ fontSize: '0.65rem', fontWeight: 700 }} />
-                  </TableCell>
-                  <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <IconButton size="small" onClick={(e) => handleMenuOpen(e, a)} sx={{ color: 'text.primary' }}><MoreVertIcon fontSize="small" /></IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
+      {tabValue === 0 && (
+        <Box>
+          {/* Category Cards */}
+          {/* <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2, mb: 3 }}>
+            {categoriesList.map((cat) => (
+              <Card key={cat.id || cat._id} sx={{ p: 2 }}>
+                <Typography sx={{ color: '#71717a', fontSize: '0.7rem', fontWeight: 700 }}>{cat.name.toUpperCase()}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.5 }}>{cat._count?.assets || 0}</Typography>
+                <Typography sx={{ color: '#4ade80', fontSize: '0.75rem', fontWeight: 600 }}>Total items</Typography>
+                <LinearProgress variant="determinate" value={100}
+                  sx={{ mt: 1, height: 4, borderRadius: 2, backgroundColor: '#2e2e38', '& .MuiLinearProgress-bar': { backgroundColor: '#10b981' } }} />
+              </Card>
+            ))}
+            {categoriesList.length === 0 && !loading && (
+              <Card sx={{ p: 3, gridColumn: '1 / -1', textAlign: 'center' }}>
+                <Typography sx={{ color: 'text.primary' }}>No categories found from backend.</Typography>
+              </Card>
+            )}
+          </Box> */}
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
-        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>{editItem ? 'Edit Item' : 'Add Inventory Item'}</DialogTitle>
+          {/* Table */}
+          <Card sx={{ p: 0, overflowX: 'auto', maxHeight: 500, overflowY: 'auto', '&::-webkit-scrollbar': { width: 0, height: 0 } }}>
+            {loading ? <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Box> : (
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    {['S.NO', 'Code', 'Name', 'Category', 'Serial', 'Purchased Amount', 'Status', 'Actions'].map(h => (
+                      <TableCell key={h} sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2', borderBottom: '1px solid', borderColor: 'divider' }}>{h}</TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {assets.map((a, i) => (
+                    <TableRow key={i} hover sx={{ '&:hover': { backgroundColor: '#1e1e2420' } }}>
+                      <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{i + 1}</TableCell>
+                      <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{a.assetCode || '—'}</TableCell>
+                      <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{a.name}</TableCell>
+                      <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{a.assetCategory?.name || '—'}</TableCell>
+                      <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{a.serialNumber || '—'}</TableCell>
+                      <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{a.purchaseAmount != null ? `$${a.purchaseAmount}` : '—'}</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Chip label={(a.currentStatus || 'AVAILABLE').toUpperCase()} size="small"
+                          color={a.currentStatus === 'AVAILABLE' ? 'success' : a.currentStatus === 'ASSIGNED' ? 'info' : a.currentStatus === 'UNDER_REPAIR' || a.currentStatus === 'DAMAGED' ? 'warning' : 'error'}
+                          sx={{ fontSize: '0.65rem', fontWeight: 700 }} />
+                      </TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <IconButton size="small" onClick={(e) => handleMenuOpen(e, a)} sx={{ color: 'text.primary' }}><MoreVertIcon fontSize="small" /></IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {assets.length === 0 && <TableRow><TableCell colSpan={8} align="center" sx={{ py: 3, color: 'text.primary' }}>No assets found</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+        </Box>
+      )}
+
+      {tabValue === 1 && (
+        <Box>
+          <Card sx={{ p: 0, overflowX: 'auto', maxHeight: 500, overflowY: 'auto' }}>
+            {loading ? <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Box> : (
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    {['Name', 'Key', 'Description', 'Assets', 'Status', 'Actions'].map(h => (
+                      <TableCell key={h} sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2', borderBottom: '1px solid', borderColor: 'divider' }}>{h}</TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {categoriesList.map((c, i) => (
+                    <TableRow key={i} hover sx={{ '&:hover': { backgroundColor: '#1e1e2420' } }}>
+                      <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider' }}>{c.name}</TableCell>
+                      <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider' }}>{c.key}</TableCell>
+                      <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider' }}>{c.description || '—'}</TableCell>
+                      <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', fontWeight: 600 }}>{c._count?.assets || 0}</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Chip label={(c.status || 'ACTIVE').toUpperCase()} size="small"
+                          color={c.status === 'ACTIVE' ? 'success' : 'default'}
+                          sx={{ fontSize: '0.65rem', fontWeight: 700 }} />
+                      </TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Stack direction="row" spacing={0.5}>
+                          {hasPermission('asset_update') && (
+                            <Tooltip title="EditOutlined Category">
+                              <IconButton size="small" onClick={() => { setEditCatItem(c); setCatForm({ name: c.name, key: c.key, description: c.description || '', status: c.status || 'ACTIVE' }); setCatOpenDialog(true); }}>
+                                <EditOutlinedIcon fontSize="small" sx={{ color: '#60a5fa' }} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {hasPermission('asset_delete') && (
+                            <Tooltip title="Delete Category">
+                              <IconButton size="small" onClick={() => handleCatDelete(c)}>
+                                <DeleteOutlineIcon fontSize="small" sx={{ color: '#ef4444' }} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {categoriesList.length === 0 && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3, color: 'text.primary' }}>No categories found</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+        </Box>
+      )}
+
+      {/* Asset Dialog */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
+        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>{editItem ? 'EditOutlined Asset' : 'Add Asset'}</DialogTitle>
         <DialogContent sx={{ bgcolor: 'background.paper', pt: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mt: 1 }}>
+            <TextField label="Asset Code" value={form.assetCode} onChange={e => setForm({ ...form, assetCode: e.target.value })} fullWidth size="small" />
             <TextField label="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} fullWidth size="small" />
             <FormControl fullWidth size="small"><InputLabel>Category</InputLabel>
-              <Select value={form.category} label="Category" onChange={e => setForm({ ...form, category: e.target.value })}>
-                <MenuItem value="Spare Part">Spare Part</MenuItem><MenuItem value="Tool">Tool</MenuItem><MenuItem value="Consumable">Consumable</MenuItem><MenuItem value="Equipment">Equipment</MenuItem>
+              <Select value={form.assetCategoryId} label="Category" onChange={e => setForm({ ...form, assetCategoryId: e.target.value })}>
+                {categoriesList.map(cat => (
+                  <MenuItem key={cat.id || cat._id} value={cat.id || cat._id}>{cat.name}</MenuItem>
+                ))}
               </Select>
             </FormControl>
-            <TextField label="Quantity" type="number" value={form.quantity} onChange={e => setForm({ ...form, quantity: Number(e.target.value) })} fullWidth size="small" />
+            <TextField label="Serial Number" value={form.serialNumber} onChange={e => setForm({ ...form, serialNumber: e.target.value })} fullWidth size="small" />
+            <TextField label="Purchase Date" type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+            <TextField label="Purchase Amount" type="number" value={form.purchaseAmount} onChange={e => setForm({ ...form, purchaseAmount: Number(e.target.value) })} fullWidth size="small" />
+            <FormControl fullWidth size="small"><InputLabel>Status</InputLabel>
+              <Select value={form.currentStatus} label="Status" onChange={e => setForm({ ...form, currentStatus: e.target.value })}>
+                <MenuItem value="AVAILABLE">AVAILABLE</MenuItem>
+                <MenuItem value="ASSIGNED">ASSIGNED</MenuItem>
+                <MenuItem value="DAMAGED">DAMAGED</MenuItem>
+                <MenuItem value="UNDER_REPAIR">UNDER_REPAIR</MenuItem>
+                <MenuItem value="RETIRED">RETIRED</MenuItem>
+                <MenuItem value="LOST">LOST</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField label="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} fullWidth size="small" multiline rows={2} />
           </Box>
         </DialogContent>
         <DialogActions sx={{ bgcolor: 'background.paper', p: 2 }}>
@@ -203,14 +377,36 @@ export default function InventoryPage() {
         </DialogActions>
       </Dialog>
 
+      {/* Category Dialog */}
+      <Dialog open={catOpenDialog} onClose={() => setCatOpenDialog(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
+        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>{editCatItem ? 'EditOutlined Category' : 'Add Category'}</DialogTitle>
+        <DialogContent sx={{ bgcolor: 'background.paper', pt: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mt: 1 }}>
+            <TextField label="Name" value={catForm.name} onChange={e => setCatForm({ ...catForm, name: e.target.value })} fullWidth size="small" />
+            <TextField label="Key (e.g. tools_equipment)" value={catForm.key} onChange={e => setCatForm({ ...catForm, key: e.target.value })} fullWidth size="small" />
+            <TextField label="Description" value={catForm.description} onChange={e => setCatForm({ ...catForm, description: e.target.value })} fullWidth size="small" multiline rows={2} />
+            <FormControl fullWidth size="small"><InputLabel>Status</InputLabel>
+              <Select value={catForm.status} label="Status" onChange={e => setCatForm({ ...catForm, status: e.target.value })}>
+                <MenuItem value="ACTIVE">ACTIVE</MenuItem>
+                <MenuItem value="INACTIVE">INACTIVE</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ bgcolor: 'background.paper', p: 2 }}>
+          <Button onClick={() => setCatOpenDialog(false)} sx={{ color: 'text.primary' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleCatSave} sx={{ backgroundColor: '#1976d2' }}>{editCatItem ? 'Update' : 'Add'}</Button>
+        </DialogActions>
+      </Dialog>
+
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} PaperProps={{ sx: { bgcolor: 'background.paper', width: 200 } }}>
-        {hasPermission('asset_update') && <MenuItem onClick={() => { setEditItem(menuAsset); setForm({ name: menuAsset?.name, category: menuAsset?.category || 'Spare Part', quantity: menuAsset?.quantity || 0, status: menuAsset?.status || 'In Stock' }); setOpenDialog(true); handleMenuClose(); }}>
-          <ListItemIcon><EditIcon fontSize="small" sx={{ color: '#60a5fa' }} /></ListItemIcon><ListItemText>Edit Info</ListItemText>
+        {hasPermission('asset_update') && <MenuItem onClick={() => { setEditItem(menuAsset); setForm({ assetCode: menuAsset?.assetCode || '', name: menuAsset?.name || '', assetCategoryId: menuAsset?.assetCategoryId || '', serialNumber: menuAsset?.serialNumber || '', purchaseDate: menuAsset?.purchaseDate ? new Date(menuAsset.purchaseDate).toISOString().split('T')[0] : '', purchaseAmount: menuAsset?.purchaseAmount || 0, currentStatus: menuAsset?.currentStatus || 'AVAILABLE', notes: menuAsset?.notes || '' }); setOpenDialog(true); handleMenuClose(); }}>
+          <ListItemIcon><EditOutlinedIcon fontSize="small" sx={{ color: '#60a5fa' }} /></ListItemIcon><ListItemText>EditOutlined Info</ListItemText>
         </MenuItem>}
-        {hasPermission('asset_assign') && <MenuItem onClick={() => { setAssignDialog({ open: true, asset: menuAsset, form: { assignedTo: '', assignmentDate: new Date().toISOString().split('T')[0], notes: '' } }); handleMenuClose(); }}>
+        {hasPermission('asset_assign') && <MenuItem onClick={() => { setAssignDialog({ open: true, asset: menuAsset, form: { assignedToType: 'DRIVER', assignedToId: '', notes: '' } }); handleMenuClose(); }}>
           <ListItemIcon><AssignmentIndIcon fontSize="small" sx={{ color: '#10b981' }} /></ListItemIcon><ListItemText>Assign</ListItemText>
         </MenuItem>}
-        {hasPermission('asset_assign') && <MenuItem onClick={() => { setReturnDialog({ open: true, asset: menuAsset, form: { returnDate: new Date().toISOString().split('T')[0], conditionOnReturn: 'Good', notes: '' } }); handleMenuClose(); }}>
+        {hasPermission('asset_assign') && <MenuItem onClick={() => { setReturnDialog({ open: true, asset: menuAsset, form: { notes: '', proofUrl: '' } }); handleMenuClose(); }}>
           <ListItemIcon><KeyboardReturnIcon fontSize="small" sx={{ color: '#3b82f6' }} /></ListItemIcon><ListItemText>Return</ListItemText>
         </MenuItem>}
         {hasPermission('asset_history_view') && <MenuItem onClick={() => { openHistory(menuAsset); handleMenuClose(); }}>
@@ -225,7 +421,7 @@ export default function InventoryPage() {
         </MenuItem>}
         <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
         {hasPermission('asset_delete') && <MenuItem onClick={() => { handleDelete(menuAsset); handleMenuClose(); }}>
-          <ListItemIcon><DeleteIcon fontSize="small" sx={{ color: '#ef4444' }} /></ListItemIcon><ListItemText sx={{ color: '#ef4444' }}>Delete</ListItemText>
+          <ListItemIcon><DeleteOutlineIcon fontSize="small" sx={{ color: '#ef4444' }} /></ListItemIcon><ListItemText sx={{ color: '#ef4444' }}>Delete</ListItemText>
         </MenuItem>}
       </Menu>
 
@@ -233,8 +429,14 @@ export default function InventoryPage() {
         <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>Assign {assignDialog.asset?.name}</DialogTitle>
         <DialogContent sx={{ bgcolor: 'background.paper', pt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField label="Assigned To (ID/Name)" value={assignDialog.form.assignedTo || ''} onChange={e => setAssignDialog(p => ({ ...p, form: { ...p.form, assignedTo: e.target.value } }))} fullWidth size="small" />
-            <TextField label="Date" type="date" value={assignDialog.form.assignmentDate || ''} onChange={e => setAssignDialog(p => ({ ...p, form: { ...p.form, assignmentDate: e.target.value } }))} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+            <FormControl fullWidth size="small"><InputLabel>Assign To Type</InputLabel>
+              <Select value={assignDialog.form.assignedToType || 'DRIVER'} label="Assign To Type" onChange={e => setAssignDialog(p => ({ ...p, form: { ...p.form, assignedToType: e.target.value } }))}>
+                <MenuItem value="VEHICLE">VEHICLE</MenuItem>
+                <MenuItem value="DRIVER">DRIVER</MenuItem>
+                <MenuItem value="USER">USER</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField label="Assigned To ID" value={assignDialog.form.assignedToId || ''} onChange={e => setAssignDialog(p => ({ ...p, form: { ...p.form, assignedToId: e.target.value } }))} fullWidth size="small" />
             <TextField label="Notes" value={assignDialog.form.notes || ''} onChange={e => setAssignDialog(p => ({ ...p, form: { ...p.form, notes: e.target.value } }))} fullWidth size="small" multiline rows={2} />
           </Box>
         </DialogContent>
@@ -248,13 +450,8 @@ export default function InventoryPage() {
         <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>Return {returnDialog.asset?.name}</DialogTitle>
         <DialogContent sx={{ bgcolor: 'background.paper', pt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField label="Date" type="date" value={returnDialog.form.returnDate || ''} onChange={e => setReturnDialog(p => ({ ...p, form: { ...p.form, returnDate: e.target.value } }))} fullWidth size="small" InputLabelProps={{ shrink: true }} />
-            <FormControl fullWidth size="small"><InputLabel>Condition</InputLabel>
-              <Select value={returnDialog.form.conditionOnReturn || 'Good'} label="Condition" onChange={e => setReturnDialog(p => ({ ...p, form: { ...p.form, conditionOnReturn: e.target.value } }))}>
-                <MenuItem value="Good">Good</MenuItem><MenuItem value="Fair">Fair</MenuItem><MenuItem value="Damaged">Damaged</MenuItem>
-              </Select>
-            </FormControl>
             <TextField label="Notes" value={returnDialog.form.notes || ''} onChange={e => setReturnDialog(p => ({ ...p, form: { ...p.form, notes: e.target.value } }))} fullWidth size="small" multiline rows={2} />
+            <TextField label="Proof URL (Optional)" value={returnDialog.form.proofUrl || ''} onChange={e => setReturnDialog(p => ({ ...p, form: { ...p.form, proofUrl: e.target.value } }))} fullWidth size="small" />
           </Box>
         </DialogContent>
         <DialogActions sx={{ bgcolor: 'background.paper', p: 2 }}>

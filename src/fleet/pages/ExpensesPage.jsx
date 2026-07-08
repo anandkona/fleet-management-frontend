@@ -9,13 +9,13 @@ import SearchIcon from '@mui/icons-material/Search';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import SpeedIcon from '@mui/icons-material/Speed';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PrintIcon from '@mui/icons-material/Print';
 import CloseIcon from '@mui/icons-material/Close';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import SendIcon from '@mui/icons-material/Send';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
@@ -24,27 +24,27 @@ import * as XLSX from 'xlsx';
 
 import { StatCard, ConfirmDialog, PageHeader } from '../components/Common';
 import api from '../../services/api';
+import { useNotification } from '../../contexts/NotificationContext';
 
-const FUEL_TYPES = ['Diesel', 'Petrol', 'CNG', 'Electric'];
+const EXPENSE_CATEGORIES = ['Tolls', 'Food & Meals', 'Lodging', 'Maintenance', 'Supplies', 'Fines', 'Other'];
 
 const fallbackExpenses = [
-  { id: 1, vehicle: 'AP05-T123', fuelType: 'Diesel', liters: 120, pricePerLiter: 35, totalCost: 4200, date: '2026-06-22', station: 'HPCL Vizag Port', odometer: 45230, notes: 'Full tank' },
-  { id: 2, vehicle: 'AP05-T087', fuelType: 'Diesel', liters: 100, pricePerLiter: 38, totalCost: 3800, date: '2026-06-21', station: 'BPCL Gajuwaka', odometer: 31450, notes: '' },
-  { id: 3, vehicle: 'AP05-T201', fuelType: 'Diesel', liters: 80, pricePerLiter: 35.5, totalCost: 2840, date: '2026-06-20', station: 'IOC Madhurawada', odometer: 12870, notes: '' },
-  { id: 4, vehicle: 'AP05-T089', fuelType: 'Diesel', liters: 90, pricePerLiter: 36, totalCost: 3240, date: '2026-06-19', station: 'HPCL MVP Colony', odometer: 22100, notes: '' },
-  { id: 5, vehicle: 'AP05-T156', fuelType: 'Petrol', liters: 35, pricePerLiter: 102, totalCost: 3570, date: '2026-06-18', station: 'IOC Dwaraka Nagar', odometer: 15400, notes: '' },
-  { id: 6, vehicle: 'AP05-T047', fuelType: 'Petrol', liters: 40, pricePerLiter: 103, totalCost: 4120, date: '2026-06-17', station: 'BPCL Rushikonda', odometer: 8900, notes: '' },
+  { id: 1, vehicle: 'AP05-T123', vehicleId: 'AP05-T123', category: 'Tolls', amount: 450, expenseDate: '2026-06-22T10:00:00Z', vendor: 'NHAI', receiptNumber: 'TL-892', notes: 'Highway toll' },
+  { id: 2, vehicle: 'AP05-T087', vehicleId: 'AP05-T087', category: 'Food & Meals', amount: 800, expenseDate: '2026-06-21T14:30:00Z', vendor: 'Highway Dhaba', receiptNumber: 'FB-102', notes: 'Driver lunch' },
+  { id: 3, vehicle: 'AP05-T201', vehicleId: 'AP05-T201', category: 'Lodging', amount: 1200, expenseDate: '2026-06-20T20:00:00Z', vendor: 'Rest Stop Inn', receiptNumber: 'HI-442', notes: 'Overnight stay' },
+  { id: 4, vehicle: 'AP05-T089', vehicleId: 'AP05-T089', category: 'Supplies', amount: 2500, expenseDate: '2026-06-19T09:15:00Z', vendor: 'Auto Parts Co', receiptNumber: 'AP-990', notes: 'Coolant and oil' },
 ];
 
-const EMPTY = { vehicle: '', fuelType: 'Diesel', liters: '', pricePerLiter: '', totalCost: '', odometer: '', date: '', station: '', notes: '' };
+const EMPTY = { vehicleId: '', tripId: '', driverId: '', category: 'Tolls', amount: '', expenseDate: '', vendor: '', receiptNumber: '', notes: '' };
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 export default function ExpensesPage() {
+  const { addNotification } = useNotification();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [filterFuelType, setFilterFuelType] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [formOpen, setFormOpen] = useState(false);
@@ -59,7 +59,7 @@ export default function ExpensesPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/fuel', { params: { limit: 100 } });
+      const res = await api.get('/expenses', { params: { limit: 100 } });
       const items = res.data?.data?.items ?? (Array.isArray(res.data?.data) ? res.data.data : []);
       setRows(items.length > 0 ? items : fallbackExpenses);
     } catch (err) { console.error(err); setRows(fallbackExpenses); }
@@ -69,34 +69,34 @@ export default function ExpensesPage() {
   React.useEffect(() => { fetchData(); }, [fetchData]);
 
   const stats = useMemo(() => {
-    const totalLiters = rows.reduce((s, r) => s + Number(r.quantityLiters || r.liters || 0), 0);
-    const totalCost = rows.reduce((s, r) => s + Number(r.totalAmount || r.totalCost || 0), 0);
-    const avgCostPerLiter = totalLiters ? (totalCost / totalLiters).toFixed(2) : 0;
-    return { totalLiters, totalCost, avgCostPerLiter };
+    const totalCost = rows.reduce((s, r) => s + Number(r.amount || 0), 0);
+    const avgCost = rows.length ? (totalCost / rows.length).toFixed(2) : 0;
+    const maxCost = rows.length ? Math.max(...rows.map(r => Number(r.amount || 0))) : 0;
+    return { totalCost, avgCost, maxCost };
   }, [rows]);
 
   const filtered = useMemo(() => rows.filter(r => {
     const q = search.toLowerCase();
-    const matchQ = !q || (r.vehicle || '').toLowerCase().includes(q) || (r.station || '').toLowerCase().includes(q);
-    const matchType = !filterFuelType || r.fuelType === filterFuelType;
-    const matchStart = !startDate || (r.fuelDate || r.date) >= startDate;
-    const matchEnd = !endDate || (r.fuelDate || r.date) <= endDate;
-    return matchQ && matchType && matchStart && matchEnd;
-  }), [rows, search, filterFuelType, startDate, endDate]);
+    const matchQ = !q || (r.vehicle?.vehicleNumber || r.vehicleId || r.vehicle || '').toLowerCase().includes(q) || (r.vendor || '').toLowerCase().includes(q) || (r.receiptNumber || '').toLowerCase().includes(q);
+    const matchCat = !filterCategory || r.category === filterCategory;
+    const matchStart = !startDate || (r.expenseDate || r.date) >= startDate;
+    const matchEnd = !endDate || (r.expenseDate || r.date) <= endDate;
+    return matchQ && matchCat && matchStart && matchEnd;
+  }), [rows, search, filterCategory, startDate, endDate]);
 
   const openAdd = () => { setEditRecord(null); setForm(EMPTY); setErrors({}); setFormOpen(true); };
   const openEdit = (r) => { 
     setEditRecord(r); 
     setForm({ 
       ...EMPTY, 
-      vehicle: r.vehicleId || r.vehicle || '', 
-      fuelType: r.fuelType || 'Diesel',
-      liters: r.quantityLiters || r.liters || '',
-      pricePerLiter: r.pricePerLiter || '',
-      totalCost: r.totalAmount || r.totalCost || '',
-      odometer: r.odometerReading || r.odometer || '',
-      date: r.fuelDate ? r.fuelDate.split('T')[0] : (r.date || ''),
-      station: r.stationName || r.station || '',
+      vehicleId: r.vehicleId || r.vehicle || '', 
+      tripId: r.tripId || '',
+      driverId: r.driverId || '',
+      category: r.category || 'Tolls',
+      amount: r.amount || '',
+      expenseDate: r.expenseDate ? r.expenseDate.split('T')[0] : (r.date || ''),
+      vendor: r.vendor || '',
+      receiptNumber: r.receiptNumber || '',
       notes: r.notes || ''
     }); 
     setErrors({}); setFormOpen(true); 
@@ -105,19 +105,14 @@ export default function ExpensesPage() {
 
   const handleFormChange = (e) => {
     const updated = { ...form, [e.target.name]: e.target.value };
-    if (e.target.name === 'liters' || e.target.name === 'pricePerLiter') {
-      const l = parseFloat(updated.liters);
-      const p = parseFloat(updated.pricePerLiter);
-      if (!isNaN(l) && !isNaN(p)) updated.totalCost = (l * p).toFixed(2);
-    }
     setForm(updated);
   };
 
   const validate = () => {
     const e = {};
-    if (!form.vehicle) e.vehicle = 'Vehicle is required';
-    if (!form.liters) e.liters = 'Liters is required';
-    if (!form.date) e.date = 'Date is required';
+    if (!form.vehicleId) e.vehicleId = 'Vehicle is required';
+    if (!form.amount) e.amount = 'Amount is required';
+    if (!form.expenseDate) e.expenseDate = 'Date is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -126,19 +121,16 @@ export default function ExpensesPage() {
     if (!validate()) return;
     try {
       const payload = {
-        vehicleId: form.vehicle,
-        fuelType: form.fuelType,
-        fuelDate: new Date(form.date).toISOString(),
-        entryMode: 'FULL_DETAILS',
-        quantityLiters: parseFloat(form.liters) || 0,
-        pricePerLiter: parseFloat(form.pricePerLiter) || 0,
-        totalAmount: parseFloat(form.totalCost) || 0,
-        odometerReading: parseInt(form.odometer) || 0,
-        stationName: form.station || undefined,
+        vehicleId: form.vehicleId,
+        tripId: form.tripId || undefined,
+        driverId: form.driverId || undefined,
+        category: form.category,
+        amount: parseFloat(form.amount) || 0,
+        expenseDate: form.expenseDate ? new Date(form.expenseDate).toISOString() : new Date().toISOString(),
+        vendor: form.vendor || undefined,
+        receiptNumber: form.receiptNumber || undefined,
         notes: form.notes || undefined,
       };
-      if (!payload.stationName) delete payload.stationName;
-      if (!payload.notes) delete payload.notes;
 
       // If vehicleId is not a real MongoDB 24-char hex string, it's likely a demo vehicle string. Mock the save!
       if (!/^[0-9a-fA-F]{24}$/.test(payload.vehicleId) && fallbackExpenses.some(f => f.vehicle === payload.vehicleId || String(f.id) === payload.vehicleId) || payload.vehicleId.includes('AP05')) {
@@ -146,13 +138,11 @@ export default function ExpensesPage() {
           id: Date.now(),
           vehicle: payload.vehicleId,
           vehicleId: payload.vehicleId,
-          fuelType: payload.fuelType,
-          liters: payload.quantityLiters,
-          pricePerLiter: payload.pricePerLiter,
-          totalCost: payload.totalAmount,
-          date: payload.fuelDate,
-          station: payload.stationName,
-          odometer: payload.odometerReading,
+          category: payload.category,
+          amount: payload.amount,
+          expenseDate: payload.expenseDate,
+          vendor: payload.vendor,
+          receiptNumber: payload.receiptNumber,
           status: 'DRAFT',
           notes: payload.notes
         };
@@ -161,31 +151,33 @@ export default function ExpensesPage() {
         } else {
           setRows(prev => [newLog, ...prev]);
         }
-        toast(editRecord ? 'Fuel log updated (Demo)' : 'Fuel log added (Demo)');
+        toast(editRecord ? 'Expense updated (Demo)' : 'Expense added (Demo)');
+        addNotification('Info', 'Saved locally (Demo)', 'info');
         closeForm();
         return;
       }
 
-      if (editRecord) { await api.patch(`/fuel/${editRecord.id || editRecord._id}`, payload); toast('Fuel log updated'); }
-      else { await api.post('/fuel', payload); toast('Fuel log added'); }
+      if (editRecord) { await api.patch(`/expenses/${editRecord.id || editRecord._id}`, payload); toast('Expense updated'); addNotification('Success', 'Expense updated successfully', 'success'); }
+      else { await api.post('/expenses', payload); toast('Expense added'); addNotification('Success', 'Expense added successfully', 'success'); }
       closeForm(); fetchData();
     } catch (err) { 
       console.error(err); 
       const msg = err.response?.data?.message || err.response?.data?.error || 'Error saving';
       toast(msg, 'error'); 
+      addNotification('Error', msg, 'error');
     }
   };
 
   const handleDelete = async () => {
     try { 
-      // If the ID is not a MongoDB 24-char hex string, it's a mock/demo item
       if (!/^[0-9a-fA-F]{24}$/.test(String(deleteId))) {
         setRows(prev => prev.filter(r => String(r.id || r._id) !== String(deleteId)));
         toast('Record deleted (Demo)');
       } else {
-        await api.delete(`/fuel/${deleteId}`); 
+        await api.delete(`/expenses/${deleteId}`); 
         setRows(prev => prev.filter(r => String(r.id || r._id) !== String(deleteId)));
         toast('Record deleted'); 
+        addNotification('Deleted', 'Expense deleted successfully', 'warning');
         fetchData(); 
       }
       setDeleteId(null); 
@@ -198,6 +190,7 @@ export default function ExpensesPage() {
         toast('Record removed');
       } else {
         toast(errMsg || 'Error deleting', 'error'); 
+        addNotification('Error', errMsg || 'Error deleting expense', 'error');
       }
       setDeleteId(null);
     }
@@ -211,11 +204,12 @@ export default function ExpensesPage() {
     try {
       if (typeof id === 'number' || fallbackExpenses.some(f => String(f.id) === String(id))) {
         setRows(prev => prev.map(r => String(r.id) === String(id) || String(r._id) === String(id) ? { ...r, status: action === 'submit' ? 'SUBMITTED' : action === 'approve' ? 'APPROVED' : action === 'reject' ? 'REJECTED' : 'CANCELLED' } : r));
-        toast(`Log ${action}d successfully`);
+        toast(`Expense ${action}d successfully`);
         return;
       }
-      await api.post(`/fuel/${id}/${action}`);
-      toast(`Log ${action}d successfully`);
+      await api.post(`/expenses/${id}/${action}`);
+      toast(`Expense ${action}d successfully`);
+      addNotification('Success', `Expense ${action}d successfully`, 'success');
       await fetchData();
     } catch (err) {
       console.error(err);
@@ -224,6 +218,7 @@ export default function ExpensesPage() {
         await fetchData();
       } else {
         toast(`Error: ${err.response?.data?.message || err.message}`, 'error');
+        addNotification('Error', `Failed to ${action} expense`, 'error');
       }
     } finally {
       setProcessingId(null);
@@ -231,16 +226,16 @@ export default function ExpensesPage() {
   };
 
   const exportToExcel = () => {
-    const data = filtered.map(r => ({ Vehicle: r.vehicle, 'Fuel Type': r.fuelType, Liters: r.liters, 'Price/L': r.pricePerLiter, 'Total Cost': r.totalCost, Odometer: r.odometer, Date: r.date, Station: r.station, Notes: r.notes }));
+    const data = filtered.map(r => ({ Vehicle: r.vehicle?.vehicleNumber || r.vehicleId || r.vehicle, Category: r.category, Amount: r.amount, Date: r.expenseDate ? r.expenseDate.split('T')[0] : r.date, Vendor: r.vendor, 'Receipt No': r.receiptNumber, Notes: r.notes }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Fuel');
-    XLSX.writeFile(wb, 'fuel-logs.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+    XLSX.writeFile(wb, 'expenses.xlsx');
   };
 
   const handlePrint = (record) => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
-    printWindow.document.write(`<!DOCTYPE html><html><head><title>Fuel Log ${record.id}</title><style>body{font-family:Arial;padding:30px;color:#333}table{width:100%;border-collapse:collapse}td{padding:10px;border-bottom:1px solid #eee}td:first-child{font-weight:600;width:40%;text-transform:uppercase;font-size:11px}.footer{margin-top:30px;text-align:center;font-size:11px;color:#aaa}</style></head><body><h2 style="color:#1acda3">Fuel Log Details</h2><table><tr><td>Vehicle</td><td>${record.vehicle}</td></tr><tr><td>Fuel Type</td><td>${record.fuelType}</td></tr><tr><td>Liters</td><td>${record.liters} L</td></tr><tr><td>Price/L</td><td>₹${record.pricePerLiter}</td></tr><tr><td>Total Cost</td><td>₹${Number(record.totalCost).toLocaleString()}</td></tr><tr><td>Date</td><td>${fmtDate(record.date)}</td></tr><tr><td>Station</td><td>${record.station || '—'}</td></tr></table>${record.notes ? `<p style="margin-top:15px;background:#f9f9f9;padding:12px;border-radius:6px"><b>Notes:</b> ${record.notes}</p>` : ''}<div class="footer">Printed on ${new Date().toLocaleDateString('en-IN')}</div></body></html>`);
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Expense ${record.id}</title><style>body{font-family:Arial;padding:30px;color:#333}table{width:100%;border-collapse:collapse}td{padding:10px;border-bottom:1px solid #eee}td:first-child{font-weight:600;width:40%;text-transform:uppercase;font-size:11px}.footer{margin-top:30px;text-align:center;font-size:11px;color:#aaa}</style></head><body><h2 style="color:#1acda3">Expense Details</h2><table><tr><td>Vehicle</td><td>${record.vehicle?.vehicleNumber || record.vehicleId || record.vehicle}</td></tr><tr><td>Category</td><td>${record.category}</td></tr><tr><td>Amount</td><td>₹${Number(record.amount).toLocaleString()}</td></tr><tr><td>Date</td><td>${fmtDate(record.expenseDate || record.date)}</td></tr><tr><td>Vendor</td><td>${record.vendor || '—'}</td></tr><tr><td>Receipt No</td><td>${record.receiptNumber || '—'}</td></tr></table>${record.notes ? `<p style="margin-top:15px;background:#f9f9f9;padding:12px;border-radius:6px"><b>Notes:</b> ${record.notes}</p>` : ''}<div class="footer">Printed on ${new Date().toLocaleDateString('en-IN')}</div></body></html>`);
     printWindow.document.close(); printWindow.focus(); printWindow.print();
   };
 
@@ -250,30 +245,30 @@ export default function ExpensesPage() {
 
   return (
     <Box>
-      <PageHeader title="Fuel Logs" subtitle="Track fuel purchases and consumption across your fleet." icon={LocalGasStationIcon}
+      <PageHeader title="Expenses" subtitle="Track and manage operational expenses across your fleet." icon={ReceiptIcon}
         action={
           <Stack direction="row" spacing={1}>
             <Tooltip title="Export to Excel"><IconButton onClick={exportToExcel} sx={{ border: '1px solid #3a3a42', borderRadius: 1.5 }}><FileDownloadIcon sx={{ fontSize: 18, color: '#10b981' }} /></IconButton></Tooltip>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd} sx={{ borderRadius: 2 }}>Add fuel log</Button>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd} sx={{ borderRadius: 2 }}>Add Expense</Button>
           </Stack>
         }
       />
 
       <Grid container spacing={2} mb={3}>
-        <Grid item xs={6} sm={3}><StatCard label="Total Fuel" value={`${stats.totalLiters.toFixed(0)} L`} sub="All logs" subColor="#60a5fa" icon={<LocalGasStationIcon />} iconBg="#1976d220" iconColor="#1976d2" /></Grid>
-        <Grid item xs={6} sm={3}><StatCard label="Total Cost" value={`₹${stats.totalCost.toLocaleString()}`} sub="All logs" subColor="#ef4444" icon={<AttachMoneyIcon />} iconBg="#ef444420" iconColor="#ef4444" /></Grid>
-        <Grid item xs={6} sm={3}><StatCard label="Avg Price/L" value={`₹${stats.avgCostPerLiter}`} sub="Current rate" subColor="#4ade80" icon={<SpeedIcon />} iconBg="#10b98120" iconColor="#10b981" /></Grid>
-        <Grid item xs={6} sm={3}><StatCard label="Total Logs" value={rows.length} sub="Records" subColor="#60a5fa" icon={<LocalGasStationIcon />} iconBg="#1976d220" iconColor="#1976d2" /></Grid>
+        <Grid item xs={6} sm={3}><StatCard label="Total Spent" value={`₹${stats.totalCost.toLocaleString()}`} sub="All expenses" subColor="#ef4444" icon={<AttachMoneyIcon />} iconBg="#ef444420" iconColor="#ef4444" /></Grid>
+        <Grid item xs={6} sm={3}><StatCard label="Avg Expense" value={`₹${stats.avgCost}`} sub="Per record" subColor="#60a5fa" icon={<AccountBalanceWalletIcon />} iconBg="#1976d220" iconColor="#1976d2" /></Grid>
+        <Grid item xs={6} sm={3}><StatCard label="Highest Exp." value={`₹${stats.maxCost.toLocaleString()}`} sub="Max recorded" subColor="#f59e0b" icon={<SpeedIcon />} iconBg="#f59e0b20" iconColor="#f59e0b" /></Grid>
+        <Grid item xs={6} sm={3}><StatCard label="Total Records" value={rows.length} sub="All time" subColor="#10b981" icon={<ReceiptIcon />} iconBg="#10b98120" iconColor="#10b981" /></Grid>
       </Grid>
 
       <Card elevation={0} sx={{ mb: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
-            <TextField placeholder="Search vehicle, station…" value={search} onChange={(e) => setSearch(e.target.value)} size="small" sx={{ flex: 1, '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', '& fieldset': { borderColor: '#3a3a42' } } }}
+            <TextField placeholder="Search vehicle, vendor…" value={search} onChange={(e) => setSearch(e.target.value)} size="small" sx={{ flex: 1, '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', '& fieldset': { borderColor: '#3a3a42' } } }}
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18, color: 'text.primary' }} /></InputAdornment> }} />
-            <TextField select label="Fuel type" value={filterFuelType} onChange={(e) => setFilterFuelType(e.target.value)} size="small" sx={{ minWidth: 140 }}>
-              <MenuItem value="">All types</MenuItem>
-              {FUEL_TYPES.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+            <TextField select label="Category" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} size="small" sx={{ minWidth: 140 }}>
+              <MenuItem value="">All categories</MenuItem>
+              {EXPENSE_CATEGORIES.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
             </TextField>
             <TextField label="Start date" type="date" size="small" sx={{ minWidth: 150 }} value={startDate} onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} />
             <TextField label="End date" type="date" size="small" sx={{ minWidth: 150 }} value={endDate} onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} />
@@ -286,7 +281,7 @@ export default function ExpensesPage() {
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                {['S.NO', 'Date', 'Vehicle', 'Fuel Type', 'Liters', 'Price/L', 'Total Cost', 'Station', 'Status', 'Actions'].map(h => (
+                {['S.NO', 'Date', 'Vehicle', 'Category', 'Amount', 'Vendor', 'Receipt No', 'Status', 'Actions'].map(h => (
                   <TableCell key={h} sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{h}</TableCell>
                 ))}
               </TableRow>
@@ -299,27 +294,26 @@ export default function ExpensesPage() {
                 return (
                   <TableRow key={id} hover sx={{ '&:hover': { backgroundColor: '#1e1e2420' } }}>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{page * 10 + i + 1}</TableCell>
-                    <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{fmtDate(r.fuelDate || r.date)}</TableCell>
+                    <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{fmtDate(r.expenseDate || r.date)}</TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                       <Stack direction="row" alignItems="center" spacing={1.2}>
-                        <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: '#1976d220', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1976d2', flexShrink: 0 }}><LocalGasStationIcon sx={{ fontSize: 17 }} /></Box>
+                        <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: '#1976d220', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1976d2', flexShrink: 0 }}><ReceiptIcon sx={{ fontSize: 17 }} /></Box>
                         <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'text.primary' }}>{r.vehicle?.vehicleNumber || r.vehicleId || r.vehicle}</Typography>
                       </Stack>
                     </TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
-                      <Chip label={r.fuelType} size="small" sx={{ bgcolor: r.fuelType === 'Diesel' ? '#1976d220' : '#10b98120', color: r.fuelType === 'Diesel' ? '#60a5fa' : '#4ade80', fontWeight: 600, fontSize: '0.7rem', height: 22 }} />
+                      <Chip label={r.category} size="small" sx={{ bgcolor: '#1976d220', color: '#60a5fa', fontWeight: 600, fontSize: '0.7rem', height: 22 }} />
                     </TableCell>
-                    <TableCell sx={{ color: 'text.primary', fontWeight: 600, fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{(r.quantityLiters || r.liters) ? `${(r.quantityLiters || r.liters)} L` : '—'}</TableCell>
-                    <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{r.pricePerLiter ? `₹${r.pricePerLiter}` : '—'}</TableCell>
-                    <TableCell sx={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{(r.totalAmount || r.totalCost) ? `₹${Number(r.totalAmount || r.totalCost).toLocaleString()}` : '—'}</TableCell>
-                    <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{r.stationName || r.station || '—'}</TableCell>
+                    <TableCell sx={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{r.amount ? `₹${Number(r.amount).toLocaleString()}` : '—'}</TableCell>
+                    <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{r.vendor || '—'}</TableCell>
+                    <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{r.receiptNumber || '—'}</TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                       <Chip label={s} size="small" color={c} sx={{ fontSize: '0.65rem', fontWeight: 600 }} />
                     </TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                       <Stack direction="row" spacing={0.5}>
                         <Tooltip title="View"><IconButton disabled={processingId === id} size="small" onClick={() => setViewRecord(r)}><VisibilityOutlinedIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>
-                        {s === 'DRAFT' && <Tooltip title="Edit"><IconButton disabled={processingId === id} size="small" onClick={() => openEdit(r)}><EditOutlinedIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>}
+                        {s === 'DRAFT' && <Tooltip title="EditOutlined"><IconButton disabled={processingId === id} size="small" onClick={() => openEdit(r)}><EditOutlinedIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>}
                         {s === 'DRAFT' && <Tooltip title="Submit"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'submit')}><SendIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
                         {s === 'SUBMITTED' && <Tooltip title="Approve"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'approve')}><CheckCircleOutlineIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
                         {s === 'SUBMITTED' && <Tooltip title="Reject"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'reject')}><HighlightOffIcon sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton></Tooltip>}
@@ -330,7 +324,7 @@ export default function ExpensesPage() {
                   </TableRow>
                 );
               })}
-              {paged.length === 0 && <TableRow><TableCell colSpan={9} align="center" sx={{ py: 6, color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>No fuel logs found</TableCell></TableRow>}
+              {paged.length === 0 && <TableRow><TableCell colSpan={9} align="center" sx={{ py: 6, color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>No expenses found</TableCell></TableRow>}
             </TableBody>
           </Table>
         )}
@@ -351,26 +345,26 @@ export default function ExpensesPage() {
         <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'center', zIndex: 1300 }}>
           <Card sx={{ width: '100%', maxWidth: 600, height: { xs: '100%', sm: 'auto' }, maxHeight: { xs: '100%', sm: '90vh' }, overflow: 'auto', borderRadius: { xs: 0, sm: 2 }, bgcolor: 'background.paper', backgroundImage: 'none', display: 'flex', flexDirection: 'column' }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{editRecord ? 'Edit fuel log' : 'Add fuel log'}</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{editRecord ? 'EditOutlined expense' : 'Add expense'}</Typography>
               <IconButton size="small" onClick={closeForm}><CloseIcon sx={{ color: 'text.primary' }} fontSize="small" /></IconButton>
             </Stack>
             <Box sx={{ p: 3 }}>
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="Vehicle" value={form.vehicle} onChange={(e) => setForm({ ...form, vehicle: e.target.value })} error={!!errors.vehicle} helperText={errors.vehicle} /></Grid>
-                <Grid item xs={12} sm={6}><TextField select fullWidth label="Fuel type" name="fuelType" value={form.fuelType} onChange={handleFormChange}>{FUEL_TYPES.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}</TextField></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth label="Liters" name="liters" type="number" value={form.liters} onChange={handleFormChange} error={!!errors.liters} helperText={errors.liters} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth label="Price/L (₹)" name="pricePerLiter" type="number" value={form.pricePerLiter} onChange={handleFormChange} /></Grid>
-                <Grid item xs={12} sm={4}><TextField fullWidth label="Total Cost (₹)" name="totalCost" type="number" value={form.totalCost} onChange={handleFormChange} InputProps={{ readOnly: true }} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="Date" name="date" type="date" value={form.date} onChange={handleFormChange} InputLabelProps={{ shrink: true }} error={!!errors.date} helperText={errors.date} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="Odometer (km)" name="odometer" type="number" value={form.odometer} onChange={handleFormChange} /></Grid>
-                <Grid item xs={12}><TextField fullWidth label="Station / Location" name="station" value={form.station} onChange={handleFormChange} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Vehicle ID" name="vehicleId" value={form.vehicleId} onChange={handleFormChange} error={!!errors.vehicleId} helperText={errors.vehicleId} /></Grid>
+                <Grid item xs={12} sm={6}><TextField select fullWidth label="Category" name="category" value={form.category} onChange={handleFormChange}>{EXPENSE_CATEGORIES.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}</TextField></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth label="Amount (₹)" name="amount" type="number" value={form.amount} onChange={handleFormChange} error={!!errors.amount} helperText={errors.amount} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth label="Date" name="expenseDate" type="date" value={form.expenseDate} onChange={handleFormChange} InputLabelProps={{ shrink: true }} error={!!errors.expenseDate} helperText={errors.expenseDate} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth label="Vendor" name="vendor" value={form.vendor} onChange={handleFormChange} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth label="Receipt No" name="receiptNumber" value={form.receiptNumber} onChange={handleFormChange} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth label="Trip ID" name="tripId" value={form.tripId} onChange={handleFormChange} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth label="Driver ID" name="driverId" value={form.driverId} onChange={handleFormChange} /></Grid>
                 <Grid item xs={12}><TextField fullWidth multiline rows={2} label="Notes" name="notes" value={form.notes} onChange={handleFormChange} /></Grid>
               </Grid>
             </Box>
             <Box sx={{ flexGrow: 1 }} />
             <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', position: 'sticky', bottom: 0, zIndex: 1 }}>
               <Button onClick={closeForm} variant="outlined" size="small" sx={{ color: 'text.primary', borderColor: '#3a3a42' }}>Cancel</Button>
-              <Button onClick={handleSave} variant="contained" size="small">{editRecord ? 'Update' : 'Add log'}</Button>
+              <Button onClick={handleSave} variant="contained" size="small">{editRecord ? 'Update' : 'Add expense'}</Button>
             </Stack>
           </Card>
         </Box>
@@ -381,8 +375,8 @@ export default function ExpensesPage() {
           <Card sx={{ width: '100%', maxWidth: 500, height: { xs: '100%', sm: 'auto' }, maxHeight: { xs: '100%', sm: '90vh' }, overflow: 'auto', borderRadius: { xs: 0, sm: 2 }, bgcolor: 'background.paper', backgroundImage: 'none', display: 'flex', flexDirection: 'column' }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <LocalGasStationIcon sx={{ color: '#10b981', fontSize: 22 }} />
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>Fuel Log Details</Typography>
+                <ReceiptIcon sx={{ color: '#10b981', fontSize: 22 }} />
+                <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>Expense Details</Typography>
               </Stack>
               <Stack direction="row" spacing={0.5}>
                 <Tooltip title="Print"><IconButton size="small" onClick={() => handlePrint(viewRecord)}><PrintIcon sx={{ fontSize: 18, color: 'text.primary' }} /></IconButton></Tooltip>
@@ -391,7 +385,7 @@ export default function ExpensesPage() {
             </Stack>
             <Box sx={{ p: 3 }}>
               <Grid container spacing={2.5}>
-                {[['Vehicle', viewRecord.vehicle?.vehicleNumber || viewRecord.vehicleId || viewRecord.vehicle], ['Fuel Type', viewRecord.fuelType], ['Liters', (viewRecord.quantityLiters || viewRecord.liters) ? `${(viewRecord.quantityLiters || viewRecord.liters)} L` : '—'], ['Price/L', viewRecord.pricePerLiter ? `₹${viewRecord.pricePerLiter}` : '—'], ['Total Cost', (viewRecord.totalAmount || viewRecord.totalCost) ? `₹${Number(viewRecord.totalAmount || viewRecord.totalCost).toLocaleString()}` : '—'], ['Date', fmtDate(viewRecord.fuelDate || viewRecord.date)], ['Odometer', (viewRecord.odometerReading || viewRecord.odometer) ? `${Number(viewRecord.odometerReading || viewRecord.odometer).toLocaleString()} km` : '—'], ['Station', viewRecord.stationName || viewRecord.station || '—'], ['Status', viewRecord.status || 'DRAFT']].map(([label, value]) => (
+                {[['Vehicle', viewRecord.vehicle?.vehicleNumber || viewRecord.vehicleId || viewRecord.vehicle], ['Category', viewRecord.category], ['Amount', viewRecord.amount ? `₹${Number(viewRecord.amount).toLocaleString()}` : '—'], ['Date', fmtDate(viewRecord.expenseDate || viewRecord.date)], ['Vendor', viewRecord.vendor || '—'], ['Receipt No', viewRecord.receiptNumber || '—'], ['Trip ID', viewRecord.tripId || '—'], ['Driver ID', viewRecord.driverId || '—'], ['Status', viewRecord.status || 'DRAFT']].map(([label, value]) => (
                   <Grid item xs={12} sm={6} key={label}>
                     <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.65rem', color: 'text.primary' }}>{label}</Typography>
                     <Typography variant="body2" fontWeight={500} sx={{ mt: 0.25, color: 'text.primary' }}>{value}</Typography>
@@ -407,7 +401,7 @@ export default function ExpensesPage() {
         </Box>
       )}
 
-      <ConfirmDialog open={!!deleteId} title="Delete fuel log" message="This action cannot be undone. Are you sure?" onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />
+      <ConfirmDialog open={!!deleteId} title="Delete expense" message="This action cannot be undone. Are you sure?" onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />
 
       <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: 2 }}>{snack.msg}</Alert>

@@ -30,8 +30,18 @@ function extractItems(res) {
   return d?.items ?? (Array.isArray(d) ? d : []);
 }
 
+import DriverDashboard from './DriverDashboard';
+
 export default function DashboardPage() {
-  const { permissions } = useAuth();
+  const { permissions, user } = useAuth();
+  
+  const roleName = user?.role?.name || user?.role?.key || user?.role || 'User';
+  const isDriver = typeof roleName === 'string' && roleName.toLowerCase() === 'driver';
+
+  if (isDriver) {
+    return <DriverDashboard />;
+  }
+
   const perms = permissions || [];
   
   const canViewVehicles = perms.includes('vehicle_view');
@@ -199,7 +209,7 @@ export default function DashboardPage() {
               <Typography sx={{ color: textColor, fontWeight: 600, mt: 2, mb: 0.5, fontSize: '0.85rem' }}>Recent trips</Typography>
               
               <TableContainer>
-                <Table size="small">
+                <Table stickyHeader size="small">
                   <TableBody>
                     {trips.map((t, idx) => (
                       <TableRow key={idx} sx={{ '& td': { borderBottom: idx === trips.length - 1 ? 'none' : `1px solid ${borderColor}` } }}>

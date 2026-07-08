@@ -10,9 +10,10 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import DownloadIcon from '@mui/icons-material/Download';
 import DeleteIcon from '@mui/icons-material/Delete';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import AddIcon from '@mui/icons-material/Add';
 import api, { documentService } from '../../services/api';
 import { ConfirmDialog } from '../components/Common';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const fallbackDocuments = [
   { id: '1', title: 'Vehicle Registration - MH-12-AB-1234', category: 'Vehicle', documentType: 'RC Book', status: 'VERIFIED', createdAt: '2026-05-10T10:00:00Z' },
@@ -25,12 +26,13 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [file, setFile] = useState(null);
-  const [form, setForm] = useState({ title: '', category: 'General', documentType: '', notes: '' });
+  const [form, setForm] = useState({ title: '', category: 'General', documentType: '', notes: '', issueDate: '', expiryDate: '', tags: '', vehicleId: '', driverId: '', tripId: '', customerId: '', vendorId: '', fuelEntryId: '', linkedEntityType: '', linkedEntityId: '' });
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
   const toast = (msg, severity = 'success') => setSnack({ open: true, msg, severity });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [deleteDialog, setDeleteDialog] = useState({ open: false, doc: null });
+  const { addNotification } = useNotification();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -42,8 +44,8 @@ export default function DocumentsPage() {
       } else {
         setDocuments(prev => prev.length > 0 ? prev : fallbackDocuments);
       }
-    } catch (err) { 
-      console.error(err); 
+    } catch (err) {
+      console.error(err);
       setDocuments(prev => prev.length > 0 ? prev : fallbackDocuments);
     }
     finally { setLoading(false); }
@@ -57,9 +59,20 @@ export default function DocumentsPage() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', form.title);
-      formData.append('category', form.category);
+      formData.append('documentCategory', form.category);
       formData.append('documentType', form.documentType);
-      if (form.notes) formData.append('notes', form.notes);
+      if (form.notes) formData.append('description', form.notes);
+      if (form.issueDate) formData.append('issueDate', new Date(form.issueDate).toISOString());
+      if (form.expiryDate) formData.append('expiryDate', new Date(form.expiryDate).toISOString());
+      if (form.tags) formData.append('tags', form.tags);
+      if (form.vehicleId) formData.append('vehicleId', form.vehicleId);
+      if (form.driverId) formData.append('driverId', form.driverId);
+      if (form.tripId) formData.append('tripId', form.tripId);
+      if (form.customerId) formData.append('customerId', form.customerId);
+      if (form.vendorId) formData.append('vendorId', form.vendorId);
+      if (form.fuelEntryId) formData.append('fuelEntryId', form.fuelEntryId);
+      if (form.linkedEntityType) formData.append('linkedEntityType', form.linkedEntityType);
+      if (form.linkedEntityId) formData.append('linkedEntityId', form.linkedEntityId);
 
       try {
         await documentService.upload(formData);
@@ -77,8 +90,13 @@ export default function DocumentsPage() {
         setDocuments(prev => [newDoc, ...prev]);
       }
       toast('Document uploaded successfully');
-      setOpenDialog(false); setFile(null); setForm({ title: '', category: 'General', documentType: '', notes: '' });
-    } catch (err) { console.error(err); toast('Failed to upload document', 'error'); }
+      addNotification('Document Uploaded', `Successfully uploaded ${form.title || file.name}`, 'success');
+      setOpenDialog(false); setFile(null); setForm({ title: '', category: 'General', documentType: '', notes: '', issueDate: '', expiryDate: '', tags: '', vehicleId: '', driverId: '', tripId: '', customerId: '', vendorId: '', fuelEntryId: '', linkedEntityType: '', linkedEntityId: '' });
+    } catch (err) {
+      console.error(err);
+      toast('Failed to upload document', 'error');
+      addNotification('Upload Failed', `Failed to upload ${form.title || file?.name || 'document'}`, 'error');
+    }
   };
 
   const confirmDelete = async () => {
@@ -93,15 +111,28 @@ export default function DocumentsPage() {
       setDocuments(prev => prev.filter(d => d.id !== doc.id && d._id !== doc._id));
       toast('Document deleted successfully');
     }
+    addNotification('Document Deleted', `Deleted document ${doc.title || doc.name}`, 'warning');
     setDeleteDialog({ open: false, doc: null });
   };
 
   const handleAction = async (id, action) => {
     try {
-      await api.post(`/documents/${id}/${action}`);
+      const payload = action === 'verify' ? { verificationStatus: 'VERIFIED' } : undefined;
+      await api.post(`/documents/${id}/${action}`, payload);
       toast(`Document ${action}d successfully`);
+      addNotification(`Document ${action.charAt(0).toUpperCase() + action.slice(1)}d`, `Successfully ${action}d document`, 'success');
       fetchData();
-    } catch (err) { console.error(err); toast(`Failed to ${action} document`, 'error'); }
+    } catch (err) {
+      console.warn(`API ${action} failed, mocking locally`);
+      setDocuments(prev => prev.map(d => {
+        if (d.id === id || d._id === id) {
+          return { ...d, status: action === 'verify' ? 'VERIFIED' : 'ARCHIVED' };
+        }
+        return d;
+      }));
+      toast(`Document ${action}d successfully`);
+      addNotification(`Document Mocked Action`, `Locally ${action}d document`, 'warning');
+    }
   };
 
   const handleDownload = async (doc) => {
@@ -129,16 +160,16 @@ export default function DocumentsPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', mb: 3, gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <DescriptionIcon sx={{ color: '#8b5cf6' }} />
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>Document Management</Typography>
-          <Chip label={documents.length} size="small" sx={{ ml: 1, backgroundColor: '#ede9fe', color: '#8b5cf6', borderRadius: '12px', height: '22px', fontSize: '0.7rem', fontWeight: 600 }} />
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
-          <IconButton onClick={fetchData} sx={{ color: 'text.primary', border: { xs: '1px solid', sm: 'none' }, borderColor: 'divider', borderRadius: 1.5 }}><RefreshIcon /></IconButton>
-          <Button variant="contained" startIcon={<CloudUploadIcon />} onClick={() => setOpenDialog(true)}
-            sx={{ backgroundColor: '#8b5cf6', '&:hover': { backgroundColor: '#7c3aed' }, flex: { xs: 1, sm: 'none' } }}>Upload Document</Button>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'flex-end', mb: 3, gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
+          {isMobile ? (
+            <Button variant="contained" onClick={() => setOpenDialog(true)} sx={{ backgroundColor: '#1976d2', '&:hover': { backgroundColor: '#0e3a66' }, minWidth: 40, width: 40, height: 40, borderRadius: 1, p: 0 }}>
+              <AddIcon />
+            </Button>
+          ) : (
+            <Button variant="contained" startIcon={<CloudUploadIcon />} onClick={() => setOpenDialog(true)}
+              sx={{ backgroundColor: '#1976d2', '&:hover': { backgroundColor: '#0e3a66' } }}>Upload Document</Button>
+          )}
         </Box>
       </Box>
 
@@ -147,29 +178,28 @@ export default function DocumentsPage() {
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                {['S.NO', 'Title', 'Category', 'Type', 'Status', 'Date', 'Actions'].map(h => (
+                {['S.NO', 'Title', 'Description', 'Type', 'Category', 'Actions'].map(h => (
                   <TableCell key={h} sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{h}</TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {documents.length === 0 ? (
-                <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>No documents uploaded yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>No documents uploaded yet</TableCell></TableRow>
               ) : documents.map((d, i) => (
                 <TableRow key={i} hover sx={{ '&:hover': { backgroundColor: '#1e1e2420' } }}>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{i + 1}</TableCell>
-                  <TableCell sx={{ fontWeight: 600, fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.title || d.name}</TableCell>
-                  <TableCell sx={{ fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.category || 'General'}</TableCell>
+
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.title || d.name || '—'}</TableCell>
+                  <TableCell sx={{ fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.description || '—'}</TableCell>
                   <TableCell sx={{ fontSize: '0.85rem', color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.documentType || '—'}</TableCell>
-                  <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
-                    <Chip label={(d.status || 'PENDING').toUpperCase()} size="small" color={statusColor(d.status)} sx={{ fontSize: '0.65rem', fontWeight: 700 }} />
-                  </TableCell>
-                  <TableCell sx={{ fontSize: '0.85rem', color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '—'}</TableCell>
+                  <TableCell sx={{ fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.documentCategory || d.category || '—'}</TableCell>
+
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                     <Stack direction="row" spacing={0.5}>
-                      {d.status !== 'VERIFIED' && <Tooltip title="Verify"><IconButton size="small" onClick={() => handleAction(d.id || d._id, 'verify')}><VerifiedUserIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
+                      {(d.verificationStatus || d.status) !== 'VERIFIED' && <Tooltip title="Verify"><IconButton size="small" onClick={() => handleAction(d.id || d._id, 'verify')}><VerifiedUserIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
                       <Tooltip title="Download"><IconButton size="small" onClick={() => handleDownload(d)}><DownloadIcon sx={{ fontSize: 17, color: '#3b82f6' }} /></IconButton></Tooltip>
-                      {d.status !== 'ARCHIVED' && <Tooltip title="Archive"><IconButton size="small" onClick={() => handleAction(d.id || d._id, 'archive')}><ArchiveIcon sx={{ fontSize: 17, color: '#f59e0b' }} /></IconButton></Tooltip>}
+                      {(d.documentStatus || d.status) !== 'ARCHIVED' && <Tooltip title="Archive"><IconButton size="small" onClick={() => handleAction(d.id || d._id, 'archive')}><ArchiveIcon sx={{ fontSize: 17, color: '#f59e0b' }} /></IconButton></Tooltip>}
                       <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteDialog({ open: true, doc: d })} sx={{ color: '#ef4444' }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                     </Stack>
                   </TableCell>
@@ -180,7 +210,7 @@ export default function DocumentsPage() {
         )}
       </Card>
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="xs" fullWidth fullScreen={isMobile}>
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>Upload Document</DialogTitle>
         <DialogContent sx={{ bgcolor: 'background.paper', pt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
@@ -188,16 +218,29 @@ export default function DocumentsPage() {
               {file ? file.name : 'Select File'}
               <input type="file" hidden onChange={e => setFile(e.target.files[0])} />
             </Button>
-            <TextField label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} fullWidth size="small" />
-            <FormControl fullWidth size="small"><InputLabel>Category</InputLabel>
-              <Select value={form.category} label="Category" onChange={e => setForm({ ...form, category: e.target.value })}>
-                <MenuItem value="Vehicle">Vehicle Compliance</MenuItem>
-                <MenuItem value="Driver">Driver Document</MenuItem>
-                <MenuItem value="Finance">Financial Record</MenuItem>
-                <MenuItem value="General">General</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField label="Document Type (e.g. License, Insurance)" value={form.documentType} onChange={e => setForm({ ...form, documentType: e.target.value })} fullWidth size="small" />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <TextField label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} fullWidth size="small" />
+              <FormControl fullWidth size="small"><InputLabel>Category</InputLabel>
+                <Select value={form.category} label="Category" onChange={e => setForm({ ...form, category: e.target.value })}>
+                  <MenuItem value="Vehicle">Vehicle Compliance</MenuItem>
+                  <MenuItem value="Driver">Driver Document</MenuItem>
+                  <MenuItem value="Finance">Financial Record</MenuItem>
+                  <MenuItem value="General">General</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField label="Document Type (e.g. License, Insurance)" value={form.documentType} onChange={e => setForm({ ...form, documentType: e.target.value })} fullWidth size="small" />
+              <TextField label="Tags (comma separated)" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} fullWidth size="small" />
+              <TextField label="Issue Date" type="date" InputLabelProps={{ shrink: true }} value={form.issueDate} onChange={e => setForm({ ...form, issueDate: e.target.value })} fullWidth size="small" />
+              <TextField label="Expiry Date" type="date" InputLabelProps={{ shrink: true }} value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} fullWidth size="small" />
+              <TextField label="Vehicle ID (Optional)" value={form.vehicleId} onChange={e => setForm({ ...form, vehicleId: e.target.value })} fullWidth size="small" />
+              <TextField label="Driver ID (Optional)" value={form.driverId} onChange={e => setForm({ ...form, driverId: e.target.value })} fullWidth size="small" />
+              <TextField label="Trip ID (Optional)" value={form.tripId} onChange={e => setForm({ ...form, tripId: e.target.value })} fullWidth size="small" />
+              <TextField label="Customer ID (Optional)" value={form.customerId} onChange={e => setForm({ ...form, customerId: e.target.value })} fullWidth size="small" />
+              <TextField label="Vendor ID (Optional)" value={form.vendorId} onChange={e => setForm({ ...form, vendorId: e.target.value })} fullWidth size="small" />
+              <TextField label="Fuel Entry ID (Optional)" value={form.fuelEntryId} onChange={e => setForm({ ...form, fuelEntryId: e.target.value })} fullWidth size="small" />
+              <TextField label="Linked Entity Type (Optional)" value={form.linkedEntityType} onChange={e => setForm({ ...form, linkedEntityType: e.target.value })} fullWidth size="small" />
+              <TextField label="Linked Entity ID (Optional)" value={form.linkedEntityId} onChange={e => setForm({ ...form, linkedEntityId: e.target.value })} fullWidth size="small" />
+            </Box>
             <TextField label="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} fullWidth size="small" multiline rows={2} />
           </Box>
         </DialogContent>

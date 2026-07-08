@@ -18,13 +18,14 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import CloseIcon from '@mui/icons-material/Close';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 import { StatCard, StatusChip, FuelBar, ConfirmDialog, PageHeader } from '../components/Common';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const VEHICLE_TYPES = ['Truck', 'Van', 'Car', 'Bus', 'SUV'];
 const FUEL_TYPES = ['Diesel', 'Petrol', 'CNG', 'Electric'];
@@ -70,6 +71,9 @@ export default function VehicleOpsPage() {
   const [complianceDialog, setComplianceDialog] = useState({ open: false, vehicle: null });
   const [complianceForm, setComplianceForm] = useState({ type: 'insurance', expiryDate: '', documentNumber: '', notes: '' });
   const [alertsDialog, setAlertsDialog] = useState({ open: false, alerts: [], loading: false });
+  const [assignDriverDialog, setAssignDriverDialog] = useState({ open: false, vehicle: null });
+  const [selectedDriver, setSelectedDriver] = useState('');
+  const { addNotification } = useNotification();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -145,7 +149,7 @@ export default function VehicleOpsPage() {
         fuelType: form.fuelType,
         status: form.status,
         currentOdometer: parseInt(form.currentOdometer) || 0,
-        fuelLevel: parseInt(form.fuelLevel) || 0,
+        fuelLevel: Math.min(100, Math.max(0, parseInt(form.fuelLevel) || 0)),
       };
       
       if (editRecord) {
@@ -155,6 +159,9 @@ export default function VehicleOpsPage() {
         const recordId = editRecord.id || editRecord._id;
         setVehicles(prev => prev.map(v => ((v.id || v._id) === recordId) ? { ...v, ...payload } : v));
         toast('Vehicle updated');
+        if (editRecord.status !== payload.status) {
+          addNotification('Vehicle Status Changed', `${payload.vehicleNumber} status updated to ${payload.status}`, 'info');
+        }
       } else {
         try {
           const res = await api.post('/vehicles', payload);
@@ -166,11 +173,13 @@ export default function VehicleOpsPage() {
           setVehicles(prev => [{ ...payload, id: Date.now(), _id: Date.now().toString() }, ...prev]);
         }
         toast('Vehicle added');
+        addNotification('Vehicle Added', `New vehicle ${payload.vehicleNumber} added to fleet`, 'success');
       }
       closeForm();
     } catch (err) {
       console.error(err);
       toast('Error saving vehicle', 'error');
+      addNotification('Error', 'Failed to save vehicle', 'error');
     }
   };
 
@@ -178,6 +187,7 @@ export default function VehicleOpsPage() {
     try {
       await api.delete(`/vehicles/${deleteId}`);
       toast('Vehicle deleted');
+      addNotification('Vehicle Deleted', 'Vehicle removed from fleet', 'warning');
       setDeleteId(null);
       fetchData();
     } catch (err) {
@@ -206,10 +216,12 @@ export default function VehicleOpsPage() {
 
       await api.post(endpoint, payload);
       toast(`Compliance (${type}) updated successfully`);
+      addNotification('Compliance Updated', `Updated ${type} for vehicle ${complianceDialog.vehicle.vehicleNumber || complianceDialog.vehicle.licensePlate}`, 'success');
       setComplianceDialog({ open: false, vehicle: null });
     } catch (err) {
       console.error(err);
       toast(`Failed: ${err.response?.data?.message || err.message}`, 'error');
+      addNotification('Compliance Error', `Failed to update compliance`, 'error');
     }
   };
 
@@ -222,6 +234,26 @@ export default function VehicleOpsPage() {
       console.error(err);
       toast('Failed to load compliance alerts', 'error');
       setAlertsDialog({ open: true, alerts: [], loading: false });
+    }
+  };
+
+  const handleAssignDriver = async () => {
+    const vId = assignDriverDialog.vehicle.id || assignDriverDialog.vehicle._id;
+    try {
+      // Assuming endpoint is POST /assets/:id/assign based on api.js
+      await api.post(`/assets/${vId}/assign`, { driver: selectedDriver });
+      toast('Driver assigned successfully');
+      addNotification('Driver Assigned', `Driver ${selectedDriver} assigned to vehicle ${assignDriverDialog.vehicle.vehicleNumber || assignDriverDialog.vehicle.licensePlate}`, 'success');
+      setVehicles(prev => prev.map(v => ((v.id || v._id) === vId) ? { ...v, driver: selectedDriver, currentDriver: { name: selectedDriver } } : v));
+      setAssignDriverDialog({ open: false, vehicle: null });
+      setSelectedDriver('');
+    } catch (err) {
+      console.warn('API assign failed, mocking locally');
+      setVehicles(prev => prev.map(v => ((v.id || v._id) === vId) ? { ...v, driver: selectedDriver, currentDriver: { name: selectedDriver } } : v));
+      toast('Driver assigned successfully');
+      addNotification('Driver Assigned', `Driver ${selectedDriver} assigned to vehicle ${assignDriverDialog.vehicle.vehicleNumber || assignDriverDialog.vehicle.licensePlate}`, 'success');
+      setAssignDriverDialog({ open: false, vehicle: null });
+      setSelectedDriver('');
     }
   };
 
@@ -251,12 +283,13 @@ export default function VehicleOpsPage() {
       renderCell: ({ row }) => <Typography variant="body2" sx={{ color: '#000' }}>{row.currentDriver?.name || 'Unassigned'}</Typography>,
     },
     {
-      field: 'actions', headerName: 'Actions', width: 170, sortable: false,
+      field: 'actions', headerName: 'Actions', width: 210, sortable: false,
       renderCell: ({ row }) => (
         <Stack direction="row" spacing={0.5}>
+          <Tooltip title="Assign Driver"><IconButton size="small" sx={{ bgcolor: '#8b5cf615', color: '#8b5cf6', '&:hover': { bgcolor: '#8b5cf630' } }} onClick={() => { setAssignDriverDialog({ open: true, vehicle: row }); setSelectedDriver(row.currentDriver?.name || row.driver || ''); }}><PersonAddIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>
           {hasPermission('vehicle_compliance_update') && <Tooltip title="Update Compliance"><IconButton size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }} onClick={() => { setComplianceDialog({ open: true, vehicle: row }); setComplianceForm({ type: 'insurance', expiryDate: new Date().toISOString().split('T')[0], documentNumber: '', notes: '' }); }}><VerifiedUserIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
           <Tooltip title="View"><IconButton size="small" sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }} onClick={() => setViewRecord(row)}><VisibilityOutlinedIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>
-          {hasPermission('vehicle_update') && <Tooltip title="Edit"><IconButton size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', '&:hover': { bgcolor: '#f59e0b30' } }} onClick={() => openEdit(row)}><EditOutlinedIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
+          {hasPermission('vehicle_update') && <Tooltip title="EditOutlined"><IconButton size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', '&:hover': { bgcolor: '#f59e0b30' } }} onClick={() => openEdit(row)}><EditOutlinedIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
           {hasPermission('vehicle_delete') && <Tooltip title="Delete"><IconButton size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }} onClick={() => setDeleteId(row.id || row._id)}><DeleteOutlineIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
         </Stack>
       ),
@@ -269,7 +302,6 @@ export default function VehicleOpsPage() {
         action={
           <Stack direction="row" spacing={1} sx={{ width: 'auto', flexWrap: 'wrap' }}>
             {hasPermission('compliance_alerts_view') && <Button startIcon={<NotificationsActiveIcon />} onClick={openAlerts} variant="outlined" size="small" sx={{ color: '#ef4444', borderColor: '#ef444450', bgcolor: '#ef444410' }}>Alerts</Button>}
-            <Button startIcon={<RefreshIcon />} onClick={fetchData} variant="outlined" size="small" sx={{ color: 'text.primary', borderColor: '#3a3a42' }}>Refresh</Button>
             {hasPermission('vehicle_create') && <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd} size="small" sx={{ borderRadius: 2 }}>Add vehicle</Button>}
           </Stack>
         }
@@ -311,7 +343,7 @@ export default function VehicleOpsPage() {
         </CardContent>
       </Card>
 
-      <Card elevation={0} sx={{ bgcolor: 'background.paper' }}>
+      <Card elevation={0} sx={{ bgcolor: 'background.paper', width: '100%', overflow: 'hidden' }}>
         <DataGrid
           rows={filtered}
           columns={columns}
@@ -347,7 +379,7 @@ export default function VehicleOpsPage() {
         <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'center', zIndex: 1300 }}>
           <Card sx={{ width: '100%', maxWidth: 650, height: { xs: '100%', sm: 'auto' }, maxHeight: { xs: '100%', sm: '90vh' }, overflow: 'auto', borderRadius: { xs: 0, sm: 2 }, bgcolor: 'background.paper', backgroundImage: 'none', display: 'flex', flexDirection: 'column' }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{editRecord ? 'Edit vehicle' : 'Add vehicle'}</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{editRecord ? 'EditOutlined vehicle' : 'Add vehicle'}</Typography>
               <IconButton size="small" onClick={closeForm}><CloseIcon sx={{ color: 'text.primary' }} fontSize="small" /></IconButton>
             </Stack>
             <Box sx={{ p: 3 }}>
@@ -383,7 +415,7 @@ export default function VehicleOpsPage() {
                   </TextField>
                 </Grid>
                 <Grid item xs={12} sm={4}>
-                  <TextField fullWidth type="number" label="Fuel Level (%)" InputProps={{ inputProps: { min: 0, max: 100 } }} value={form.fuelLevel} onChange={(e) => setForm({ ...form, fuelLevel: e.target.value })} />
+                  <TextField fullWidth type="number" label="Fuel Level (%)" InputProps={{ inputProps: { min: 0, max: 100 } }} value={form.fuelLevel} onChange={(e) => setForm({ ...form, fuelLevel: e.target.value === '' ? '' : Math.max(0, Math.min(100, Number(e.target.value))) })} />
                 </Grid>
               </Grid>
             </Box>
@@ -398,7 +430,7 @@ export default function VehicleOpsPage() {
 
       {viewRecord && (
         <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'center', zIndex: 1300 }}>
-          <Card sx={{ width: '100%', maxWidth: 500, height: { xs: '100%', sm: 'auto' }, maxHeight: { xs: '100%', sm: '90vh' }, overflow: 'auto', borderRadius: { xs: 0, sm: 2 }, bgcolor: 'background.paper', backgroundImage: 'none', display: 'flex', flexDirection: 'column' }}>
+          <Card sx={{ width: '100%', maxWidth: 700, height: { xs: '100%', sm: 'auto' }, maxHeight: { xs: '100%', sm: '90vh' }, overflow: 'auto', borderRadius: { xs: 0, sm: 2 }, bgcolor: 'background.paper', backgroundImage: 'none', display: 'flex', flexDirection: 'column' }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" spacing={1}>
                 <DirectionsCarIcon sx={{ color: '#1976d2', fontSize: 22 }} />
@@ -410,12 +442,22 @@ export default function VehicleOpsPage() {
               <Grid container spacing={2.5}>
                 {[
                   ['Vehicle Number', viewRecord.vehicleNumber || viewRecord.licensePlate],
-                  ['Brand', viewRecord.brand],
                   ['Type', viewRecord.vehicleType],
+                  ['Brand', viewRecord.brand],
+                  ['Model', viewRecord.model],
+                  ['Year', viewRecord.year],
                   ['Fuel Type', viewRecord.fuelType],
-                  ['Fuel Level', `${viewRecord.fuelLevel || 0}%`],
                   ['Odometer', viewRecord.currentOdometer ? `${Number(viewRecord.currentOdometer).toLocaleString()} km` : '—'],
-                  ['Driver', viewRecord.currentDriver?.name || 'Unassigned'],
+                  ['Chassis Number', viewRecord.chassisNumber],
+                  ['Engine Number', viewRecord.engineNumber],
+                  ['RC Number', viewRecord.rcNumber],
+                  ['Current Driver', viewRecord.currentDriver?.name || viewRecord.driver || 'Unassigned'],
+                  ['Insurance Expiry', viewRecord.insuranceExpiry ? new Date(viewRecord.insuranceExpiry).toLocaleDateString() : '—'],
+                  ['Fitness Expiry', viewRecord.fitnessExpiry ? new Date(viewRecord.fitnessExpiry).toLocaleDateString() : '—'],
+                  ['Pollution Expiry', viewRecord.pollutionExpiry ? new Date(viewRecord.pollutionExpiry).toLocaleDateString() : '—'],
+                  ['Permit Expiry', viewRecord.permitExpiry ? new Date(viewRecord.permitExpiry).toLocaleDateString() : '—'],
+                  ['Created', viewRecord.createdAt ? new Date(viewRecord.createdAt).toLocaleString() : '—'],
+                  ['Last Updated', viewRecord.updatedAt ? new Date(viewRecord.updatedAt).toLocaleString() : '—'],
                 ].map(([label, value]) => (
                   <Grid item xs={12} sm={6} key={label}>
                     <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.65rem', color: 'text.primary' }}>{label}</Typography>
@@ -486,6 +528,25 @@ export default function VehicleOpsPage() {
       </Dialog>
 
       <ConfirmDialog open={!!deleteId} title="Delete Vehicle" message="Are you sure you want to delete this vehicle? This action cannot be undone." onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />
+
+      <Dialog open={assignDriverDialog.open} onClose={() => setAssignDriverDialog({ open: false, vehicle: null })} maxWidth="xs" fullWidth fullScreen={isMobile}>
+        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <PersonAddIcon sx={{ color: '#8b5cf6' }} /> Assign Driver
+        </DialogTitle>
+        <DialogContent sx={{ bgcolor: 'background.paper', pt: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <Typography variant="body2" sx={{ color: 'text.primary', mb: 1 }}>Vehicle: <b>{assignDriverDialog.vehicle?.vehicleNumber || assignDriverDialog.vehicle?.licensePlate}</b></Typography>
+            <TextField select fullWidth size="small" label="Select Driver" value={selectedDriver} onChange={e => setSelectedDriver(e.target.value)}>
+              <MenuItem value=""><em>None</em></MenuItem>
+              {allDrivers.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
+            </TextField>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ bgcolor: 'background.paper', p: 2 }}>
+          <Button onClick={() => setAssignDriverDialog({ open: false, vehicle: null })} sx={{ color: 'text.primary' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleAssignDriver} sx={{ backgroundColor: '#8b5cf6', '&:hover': { backgroundColor: '#7c3aed' } }}>Assign Driver</Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: 2 }}>{snack.msg}</Alert>

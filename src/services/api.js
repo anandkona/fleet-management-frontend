@@ -1,11 +1,13 @@
 import axios from 'axios';
 
-const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1`;
+const BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/v1`
+  : '/api/v1';
 
 const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 10000,
+  timeout: 30000,
 });
 
 api.interceptors.request.use((config) => {
@@ -39,6 +41,11 @@ export const authService = {
     api.post('/auth/verify-otp', { email, otp }),
   resetPassword: (email, otp, newPassword) =>
     api.post('/auth/reset-password', { email, otp, newPassword }),
+};
+
+// ─── NOTIFICATIONS ───────────────────────────────────────────────────────
+export const notificationService = {
+  getAll: () => api.get('/me/notifications'),
 };
 
 // ─── VEHICLES ────────────────────────────────────────────────────────────────
@@ -145,6 +152,11 @@ export const tripService = {
   complete: (id, data) => api.post(`/trips/${id}/complete`, data),
   cancel: (id, data) => api.post(`/trips/${id}/cancel`, data),
   history: (id) => api.get(`/trips/${id}/history`),
+};
+
+// ─── DISPATCH ─────────────────────────────────────────────────────────────────
+export const dispatchService = {
+  getBoard: () => api.get('/dispatch/board'),
 };
 
 // ─── REPAIRS ────────────────────────────────────────────────────────────────

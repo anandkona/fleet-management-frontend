@@ -7,7 +7,6 @@ import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import api from '../../services/api';
 
 const fallbackInsights = [
@@ -60,14 +59,8 @@ export default function AIInsightsPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', mb: 3, gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AutoAwesomeIcon sx={{ color: '#a855f7' }} />
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>AI Intelligence</Typography>
-          <Chip label={insights.length} size="small" sx={{ ml: 1, backgroundColor: '#1e3a8a', color: '#60a5fa', borderRadius: '12px', height: '22px', fontSize: '0.7rem', fontWeight: 600 }} />
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'flex-end', mb: 3, gap: 2 }}>
         </Box>
-        <Button onClick={fetchData} variant="outlined" sx={{ color: 'text.primary', borderColor: 'divider', width: { xs: '100%', sm: 'auto' } }}><RefreshIcon sx={{ mr: 0.5 }} /> Refresh</Button>
-      </Box>
 
       {/* Filter chips */}
       <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>

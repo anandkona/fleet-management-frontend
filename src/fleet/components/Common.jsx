@@ -123,18 +123,12 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, loadi
   );
 }
 
-export function PageHeader({ title, subtitle, action, icon: Icon }) {
+export function PageHeader({ action }) {
+  if (!action) return null;
   return (
-    <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" mb={3} gap={2}>
-      <Box>
-        <Stack direction="row" alignItems="center" spacing={1.2} mb={0.5}>
-          {Icon && <Icon sx={{ color: '#1976d2', fontSize: 26 }} />}
-          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>{title}</Typography>
-        </Stack>
-        {subtitle && <Typography variant="body2" mt={0.5} sx={{ color: 'text.primary' }}>{subtitle}</Typography>}
-      </Box>
-      {action && <Box sx={{ flexShrink: 0 }}>{action}</Box>}
-    </Stack>
+    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+      {action}
+    </Box>
   );
 }
 

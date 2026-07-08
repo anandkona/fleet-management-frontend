@@ -1,7 +1,6 @@
 import React, { useCallback, Suspense, lazy, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, ThemeProvider, CssBaseline, CircularProgress, Drawer } from '@mui/material';
-import { SnackbarProvider } from 'notistack';
 import { getTheme } from './theme';
 import { useSettings } from '../contexts/SettingsContext';
 import FleetSidebar from './FleetSidebar';
@@ -24,12 +23,15 @@ const FinancePage = lazy(() => import('./pages/FinancePage'));
 const UsersPage = lazy(() => import('./pages/UsersPage'));
 const RolesPage = lazy(() => import('./pages/RolesPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const FuelPage = lazy(() => import('./pages/FuelPage'));
+const DispatchBoardPage = lazy(() => import('./pages/DispatchBoardPage'));
 
-const VALID_TABS = ['dashboard', 'tracking', 'vehicle-ops', 'trip-logs', 'drivers', 'inventory', 'maintenance', 'repairs', 'expenses', 'finance', 'ai-insights', 'reports', 'documents', 'users', 'roles', 'settings'];
+const VALID_TABS = ['dashboard', 'tracking', 'dispatch', 'vehicle-ops', 'trip-logs', 'drivers', 'inventory', 'maintenance', 'repairs', 'expenses', 'fuel', 'finance', 'ai-insights', 'reports', 'documents', 'users', 'roles', 'settings'];
 
 const pageMap = {
   dashboard: DashboardPage,
   tracking: LiveTrackingPage,
+  dispatch: DispatchBoardPage,
   'vehicle-ops': VehicleOpsPage,
   'trip-logs': TripLogsPage,
   drivers: DriversPage,
@@ -37,6 +39,7 @@ const pageMap = {
   maintenance: MaintenancePage,
   repairs: RepairsPage,
   expenses: ExpensesPage,
+  fuel: FuelPage,
   finance: FinancePage,
   'ai-insights': AIInsightsPage,
   reports: ReportsPage,
@@ -77,7 +80,6 @@ export default function FleetApp() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} autoHideDuration={3000}>
         <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', bgcolor: 'background.default' }}>
           <Box component="nav" sx={{ width: { md: '260px' }, flexShrink: { md: 0 } }}>
             <Drawer
@@ -116,7 +118,6 @@ export default function FleetApp() {
             </Box>
           </Box>
         </Box>
-      </SnackbarProvider>
     </ThemeProvider>
   );
 }

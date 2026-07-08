@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -19,35 +19,86 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import { DarkMode, LightMode } from '@mui/icons-material';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { 
+  DarkMode, LightMode, Info, CheckCircle, Warning, Error as ErrorIcon
+} from '@mui/icons-material';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import PeopleIcon from '@mui/icons-material/People';
+import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import DynamicFeedIcon from '@mui/icons-material/DynamicFeed';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import BuildIcon from '@mui/icons-material/Build';
+import BuildCircleIcon from '@mui/icons-material/BuildCircle';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import DescriptionIcon from '@mui/icons-material/Description';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import SecurityIcon from '@mui/icons-material/Security';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useSettings } from '../contexts/SettingsContext';
+import { useNotification } from '../contexts/NotificationContext';
 
-function FleetHeader({ onAddVehicle, handleDrawerToggle }) {
-  const [openDialog, setOpenDialog] = useState(false);
-  const [vehicleType, setVehicleType] = useState('TRUCK');
-  const [anchorEl, setAnchorEl] = useState(null);
+function FleetHeader({ handleDrawerToggle }) {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const pageTitle = useMemo(() => {
+    const path = location.pathname.substring(1);
+    if (!path || path === 'dashboard') return 'Fleet Dashboard';
+    if (path === 'vehicle-ops') return 'Vehicle Operations';
+    if (path === 'ai-insights') return 'AI Insights';
+    if (path === 'tracking') return 'Live Tracking';
+    if (path === 'dispatch') return 'Dispatch Board';
+    return path.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  }, [location.pathname]);
+
+  const PageIcon = useMemo(() => {
+    const path = location.pathname.substring(1);
+    switch (path) {
+      case 'vehicle-ops': return LocalShippingIcon;
+      case 'maintenance': return BuildIcon;
+      case 'repairs': return BuildCircleIcon;
+      case 'expenses': return AccountBalanceWalletIcon;
+      case 'finance': return MonetizationOnIcon;
+      case 'tracking': return MyLocationIcon;
+      case 'drivers': return PeopleIcon;
+      case 'users': return ManageAccountsIcon;
+      case 'inventory': return InventoryIcon;
+      case 'fuel': return LocalGasStationIcon;
+      case 'ai-insights': return AutoAwesomeIcon;
+      case 'roles': return SecurityIcon;
+      case 'trip-logs': return AssignmentIcon;
+      case 'documents': return DescriptionIcon;
+      case 'dispatch': return DynamicFeedIcon;
+      case 'reports': return AssessmentIcon;
+      case 'settings': return SettingsIcon;
+      default: return DashboardIcon;
+    }
+  }, [location.pathname]);
   const { themeMode, toggleThemeMode } = useSettings();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotification();
+  const [notifAnchorEl, setNotifAnchorEl] = useState(null);
 
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const handleNotifClick = (event) => setNotifAnchorEl(event.currentTarget);
+  const handleNotifClose = () => setNotifAnchorEl(null);
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const today = useMemo(() => {
-    return currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-      + ' • ' + currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
-  }, [currentTime]);
-
-  const handleConfirmAdd = async () => {
-    await onAddVehicle(vehicleType);
-    setOpenDialog(false);
+  const getNotifIcon = (type) => {
+    switch(type) {
+      case 'success': return <CheckCircle sx={{ color: 'success.main', fontSize: 20 }} />;
+      case 'warning': return <Warning sx={{ color: 'warning.main', fontSize: 20 }} />;
+      case 'error': return <ErrorIcon sx={{ color: 'error.main', fontSize: 20 }} />;
+      default: return <Info sx={{ color: 'info.main', fontSize: 20 }} />;
+    }
   };
+
+
 
   return (
     <Box
@@ -73,22 +124,10 @@ function FleetHeader({ onAddVehicle, handleDrawerToggle }) {
         >
           <MenuIcon sx={{ fontSize: '20px' }} />
         </IconButton>
-        <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '-0.02em', display: { xs: 'none', sm: 'block' } }}>
-          Fleet Dashboard
+        <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '-0.02em', display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
+          <PageIcon sx={{ color: 'primary.main', mr: 1, fontSize: '28px' }} />
+          {pageTitle}
         </Typography>
-        <Box
-          sx={{
-            bgcolor: 'background.paper',
-            border: '1px solid #2d2d35',
-            borderRadius: '20px',
-            p: '6px 16px',
-            textAlign: 'center'
-          }}
-        >
-          <Typography variant="body2" sx={{ color: 'text.primary', fontSize: '0.75rem', fontWeight: 600, lineHeight: 1.2 }}>
-            {today}
-          </Typography>
-        </Box>
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -124,49 +163,71 @@ function FleetHeader({ onAddVehicle, handleDrawerToggle }) {
           {themeMode === 'dark' ? <LightMode sx={{ fontSize: '20px' }} /> : <DarkMode sx={{ fontSize: '20px' }} />}
         </IconButton>
 
-        <IconButton sx={{ border: '1px solid', borderColor: 'divider', p: '8px', borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' } }}>
-          <Badge badgeContent={6} sx={{ '& .MuiBadge-badge': { backgroundColor: '#1976d2', color: '#fff' } }}>
+        <IconButton onClick={handleNotifClick} sx={{ border: '1px solid', borderColor: 'divider', p: '8px', borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' } }}>
+          <Badge badgeContent={unreadCount} sx={{ '& .MuiBadge-badge': { backgroundColor: '#1976d2', color: '#fff' } }}>
             <NotificationsIcon sx={{ fontSize: '20px' }} />
           </Badge>
         </IconButton>
-
-        <Button variant="contained" onClick={() => setOpenDialog(true)} sx={{ backgroundColor: '#1976d2', px: { xs: '8px', sm: '18px' }, py: { xs: '4px', sm: '8px' }, color: '#fff', fontSize: { xs: '0.75rem', sm: '0.875rem' }, '&:hover': { backgroundColor: '#1565c0' }, minWidth: { xs: 'auto', sm: '120px' } }}>
-          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>+ Add Vehicle</Box>
-          <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>+ Add</Box>
-        </Button>
-
-        <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ border: '1px solid', borderColor: 'divider', p: '8px', borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' } }}>
-          <MoreHorizIcon sx={{ fontSize: '20px' }} />
-        </IconButton>
-        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-          <MenuItem onClick={() => setAnchorEl(null)}>Configure Widgets</MenuItem>
-          <MenuItem onClick={() => setAnchorEl(null)}>Export PDF Report</MenuItem>
-          <MenuItem onClick={() => { setAnchorEl(null); navigate('/settings', { replace: true }); }}>Settings</MenuItem>
+        <Menu
+          anchorEl={notifAnchorEl}
+          open={Boolean(notifAnchorEl)}
+          onClose={handleNotifClose}
+          PaperProps={{
+            elevation: 3,
+            sx: {
+              width: 320,
+              maxHeight: 400,
+              mt: 1.5,
+              borderRadius: '12px',
+              overflow: 'hidden',
+              bgcolor: 'background.paper',
+            },
+          }}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+          <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="subtitle1" fontWeight="bold">Notifications</Typography>
+            <Box>
+              <Button size="small" onClick={markAllAsRead} sx={{ fontSize: '0.75rem', mr: 1 }}>Mark all read</Button>
+              <Button size="small" color="error" onClick={clearAll} sx={{ fontSize: '0.75rem' }}>Clear</Button>
+            </Box>
+          </Box>
+          <Box sx={{ overflowY: 'auto', maxHeight: 320 }}>
+            {notifications.length === 0 ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">No notifications yet.</Typography>
+              </Box>
+            ) : (
+              notifications.map((n) => (
+                <MenuItem
+                  key={n.id}
+                  onClick={() => { markAsRead(n.id); }}
+                  sx={{
+                    px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider',
+                    bgcolor: n.read ? 'transparent' : 'action.hover',
+                    whiteSpace: 'normal',
+                    display: 'flex', alignItems: 'flex-start', gap: 1.5
+                  }}
+                >
+                  <Box sx={{ mt: 0.5 }}>{getNotifIcon(n.type)}</Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: n.read ? 400 : 600 }}>{n.title}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>{n.message}</Typography>
+                    <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
+                      {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Typography>
+                  </Box>
+                </MenuItem>
+              ))
+            )}
+          </Box>
         </Menu>
-      </Box>
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>Add New Vehicle</DialogTitle>
-        <DialogContent sx={{ bgcolor: 'background.paper', minWidth: '300px', pt: 2 }}>
-          <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel sx={{ color: 'text.primary' }}>Vehicle Type</InputLabel>
-            <Select
-              value={vehicleType}
-              label="Vehicle Type"
-              onChange={(e) => setVehicleType(e.target.value)}
-              sx={{ color: 'text.primary', backgroundColor: 'background.default', '.MuiOutlinedInput-notchedOutline': { borderColor: 'divider' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' } }}
-            >
-              <MenuItem value="TRUCK">Truck</MenuItem>
-              <MenuItem value="VAN">Van</MenuItem>
-              <MenuItem value="CAR">Car</MenuItem>
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions sx={{ bgcolor: 'background.paper', p: '16px' }}>
-          <Button onClick={() => setOpenDialog(false)} sx={{ color: 'text.primary' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleConfirmAdd} sx={{ backgroundColor: '#1976d2' }}>Add</Button>
-        </DialogActions>
-      </Dialog>
+        <IconButton onClick={() => navigate('/settings', { replace: true })} sx={{ border: '1px solid', borderColor: 'divider', p: '8px', borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' } }}>
+          <SettingsIcon sx={{ fontSize: '20px' }} />
+        </IconButton>
+      </Box>
     </Box>
   );
 }

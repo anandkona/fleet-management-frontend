@@ -7,8 +7,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://fleet-management-backend-staging.vercel.app',
+        target: 'https://backend-alpha-ten-24.vercel.app',
         changeOrigin: true,
+        secure: false,
       }
     }
   }

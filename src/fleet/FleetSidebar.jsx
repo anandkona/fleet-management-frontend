@@ -17,6 +17,8 @@ import MyLocationIcon from '@mui/icons-material/MyLocation';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PeopleIcon from '@mui/icons-material/People';
+import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import DynamicFeedIcon from '@mui/icons-material/DynamicFeed';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import BuildIcon from '@mui/icons-material/Build';
 import BuildCircleIcon from '@mui/icons-material/BuildCircle';
@@ -47,7 +49,9 @@ const menuConfig = [
     items: [
       { id: 'vehicle-ops', label: 'Vehicle Ops', icon: <LocalShippingIcon />, badge: '3', badgeColor: 'black', permission: 'vehicle_view' },
       { id: 'trip-logs', label: 'Trip Logs', icon: <AssignmentIcon />, permission: 'trip_view' },
-      { id: 'drivers', label: 'Drivers', icon: <PeopleIcon />, permission: 'driver_view' }
+      { id: 'fuel', label: 'Fuel Logs', icon: <LocalGasStationIcon />, permission: 'fuel_view' },
+      { id: 'drivers', label: 'Drivers', icon: <PeopleIcon />, permission: 'driver_view' },
+      { id: 'dispatch', label: 'Dispatch Board', icon: <DynamicFeedIcon />, permission: 'trip_view' }
     ]
   },
   {
@@ -90,8 +94,15 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
   const navigate = useNavigate();
 
   const { user, permissions, logout, hasPermission } = useAuth();
-  
-  const roleName = typeof user?.role === 'string' ? user.role : (user?.role?.key || user?.role?.name || '');
+
+  const displayName = [user?.name, user?.fullName, user?.email].find(Boolean) || '';
+  const roleName = (user?.role && typeof user.role === 'object')
+    ? (user.role.key || user.role.name || '')
+    : (typeof user?.role === 'string' && (user.role.includes(' ') || user.role.includes('_')) ? user.role : '');
+  const roleLabel = roleName ? String(roleName).toLowerCase().replace(/_/g, ' ') : '';
+  const initials = displayName
+    ? displayName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+    : (user?.email ? String(user.email).charAt(0).toUpperCase() : '');
 
   const visibleMenuConfig = menuConfig.map(section => {
     const allowedItems = section.items.filter(item => {
@@ -112,20 +123,20 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
     <Box
       sx={{
         width: '260px',
-        bgcolor: 'background.paper',
+        bgcolor: isDark ? '#0A1118' : '#F8FAFC',
         borderRight: '1px solid',
-        borderColor: 'divider',
+        borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        color: 'text.primary'
+        color: isDark ? '#F8FAFC' : '#0F172A'
       }}
     >
       <Box sx={{ p: '24px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <Box
           sx={{
-            width: '40px',
-            height: '40px',
+            width: '32px',
+            height: '32px',
             borderRadius: '8px',
             backgroundColor: '#1976d2',
             display: 'flex',
@@ -133,14 +144,11 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
             justifyContent: 'center'
           }}
         >
-          <BusinessCenterIcon sx={{ color: 'text.primary', fontSize: '24px' }} />
+          <BusinessCenterIcon sx={{ color: '#fff', fontSize: '18px' }} />
         </Box>
         <Box>
-          <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.2 }}>
+          <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 800, lineHeight: 1.2, color: isDark ? '#fff' : '#0F172A', letterSpacing: '-0.5px' }}>
             FleetAI
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.primary', fontSize: '0.75rem', fontWeight: 500 }}>
-            Fleet Intelligence Platform
           </Typography>
         </Box>
       </Box>
@@ -152,11 +160,12 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
               variant="body2"
               sx={{
                 px: '16px',
-                mb: '8px',
-                color: 'text.secondary',
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                letterSpacing: '0.05em'
+                mb: '6px',
+                color: isDark ? '#64748B' : '#94A3B8',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase'
               }}
             >
               {section.category}
@@ -165,22 +174,21 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
               {section.items.map((item) => {
                 const isActive = activeTab === item.id;
                 return (
-                  <ListItem key={item.id} disablePadding sx={{ mb: '4px' }}>
+                  <ListItem key={item.id} disablePadding sx={{ mb: '4px', px: '12px' }}>
                     <ListItemButton
                       onClick={() => setActiveTab(item.id)}
                       sx={{
                         borderRadius: '8px',
-                        py: '8px',
-                        px: '16px',
-                        backgroundColor: isActive ? 'rgba(25, 118, 210, 0.15)' : 'transparent',
-                        color: isActive ? '#1976d2' : 'text.primary',
-                        borderLeft: isActive ? '4px solid #1976d2' : '4px solid transparent',
+                        py: '6px',
+                        px: '12px',
+                        backgroundColor: isActive ? (isDark ? 'rgba(25, 118, 210, 0.15)' : '#E3F2FD') : 'transparent',
+                        color: isActive ? '#1976d2' : (isDark ? '#CBD5E1' : '#475569'),
                         transition: 'all 0.2s',
                         '&:hover': {
-                          backgroundColor: isActive ? 'rgba(25, 118, 210, 0.25)' : 'rgba(0, 0, 0, 0.04)',
-                          color: '#1976d2',
+                          backgroundColor: isActive ? (isDark ? 'rgba(25, 118, 210, 0.25)' : '#BBDEFB') : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
+                          color: isActive ? '#1976d2' : (isDark ? '#F8FAFC' : '#0F172A'),
                           '& .MuiListItemIcon-root': {
-                            color: '#1976d2'
+                            color: isActive ? '#1976d2' : (isDark ? '#F8FAFC' : '#0F172A')
                           }
                         }
                       }}
@@ -231,30 +239,32 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
         ))}
       </Box>
 
-      <Divider sx={{ borderColor: 'divider' }} />
+      <Divider sx={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }} />
 
       <Box sx={{ p: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <Avatar
           sx={{
-            width: '40px',
-            height: '40px',
+            width: '36px',
+            height: '36px',
             backgroundColor: '#0288d1',
-            color: 'text.primary',
-            fontSize: '0.9rem',
+            color: '#fff',
+            fontSize: '0.85rem',
             fontWeight: 700
           }}
         >
-          {user?.name ? user.name.substring(0, 2).toUpperCase() : 'U'}
+          {initials}
         </Avatar>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.875rem' }}>
-            {user?.name || 'User'}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="body2" noWrap sx={{ fontWeight: 600, color: isDark ? '#F8FAFC' : '#0F172A', fontSize: '0.8rem' }}>
+            {displayName}
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.primary', fontSize: '0.75rem', fontWeight: 500, textTransform: 'capitalize' }}>
-            {roleName ? roleName.toLowerCase().replace(/_/g, ' ') : 'Role'}
-          </Typography>
+          {roleLabel ? (
+            <Typography variant="body2" noWrap sx={{ color: isDark ? '#94A3B8' : '#475569', fontSize: '0.7rem', fontWeight: 500, textTransform: 'capitalize' }}>
+              {roleLabel}
+            </Typography>
+          ) : null}
         </Box>
-        <IconButton size="small" onClick={() => setLogoutDialogOpen(true)} sx={{ color: 'text.secondary', '&:hover': { color: '#ef4444' } }}>
+        <IconButton size="small" onClick={() => setLogoutDialogOpen(true)} sx={{ color: isDark ? '#64748B' : '#94A3B8', '&:hover': { color: '#ef4444' } }}>
           <LogoutIcon fontSize="small" />
         </IconButton>
       </Box>

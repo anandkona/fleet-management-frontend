@@ -9,7 +9,6 @@ import SecurityIcon from '@mui/icons-material/Security';
 import AddIcon from '@mui/icons-material/Add';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { ConfirmDialog } from '../components/Common';
 import api, { roleService, permissionService } from '../../services/api';
@@ -62,11 +61,11 @@ export default function RolesPage() {
   const [groupedPermissions, setGroupedPermissions] = useState({});
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
-  
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ name: '', key: '', status: 'ACTIVE', permissions: [] });
   const [editId, setEditId] = useState(null);
-  
+
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, item: null });
 
@@ -75,16 +74,16 @@ export default function RolesPage() {
     try {
       const [rolesRes, permsRes] = await Promise.all([
         roleService.getAll().catch(() => ({ items: DEFAULT_ROLES })),
-        api.get('/permissions').catch(() => ({ 
-          data: { data: ALL_PERMISSIONS.map(k => ({ key: k, module: k.split('_')[0].toUpperCase(), name: k })) } 
+        api.get('/permissions').catch(() => ({
+          data: { data: ALL_PERMISSIONS.map(k => ({ key: k, module: k.split('_')[0].toUpperCase(), name: k })) }
         }))
       ]);
 
       setRoles(Array.isArray(rolesRes) ? rolesRes : rolesRes?.items ?? DEFAULT_ROLES);
-      
+
       const perms = permsRes.data?.data ?? (Array.isArray(permsRes) ? permsRes : []);
       setAvailablePermissions(perms);
-      
+
       const grouped = perms.reduce((acc, p) => {
         const mod = p.module || p.key.split('_')[0].toUpperCase();
         if (!acc[mod]) acc[mod] = [];
@@ -167,14 +166,8 @@ export default function RolesPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', mb: 3, gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <SecurityIcon sx={{ color: '#1976d2' }} />
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>Roles & Permissions</Typography>
-          <Chip label={roles.length} size="small" sx={{ ml: 1, backgroundColor: '#1976d2', color: '#fff', borderRadius: '12px', height: '22px', fontSize: '0.7rem', fontWeight: 600 }} />
-        </Box>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'flex-end', mb: 3, gap: 2 }}>
         <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-          <Button startIcon={<RefreshIcon />} onClick={fetchData} variant="outlined" sx={{ color: 'text.primary', borderColor: 'divider', flex: { xs: 1, sm: 'none' } }}>Refresh</Button>
           {hasPermission('role_create') && <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ name: '', key: '', status: 'ACTIVE', permissions: [] }); setEditId(null); setDialogOpen(true); }} sx={{ flex: { xs: 1, sm: 'none' }, bgcolor: '#1976d2' }}>Create Role</Button>}
         </Stack>
       </Box>
@@ -207,12 +200,12 @@ export default function RolesPage() {
                       <Stack direction="row" spacing={0.5}>
                         {r.key !== 'super_admin' && (
                           <>
-                            {hasPermission('role_update') && <Tooltip title="Edit Role">
-                              <IconButton size="small" onClick={() => { 
+                            {hasPermission('role_update') && <Tooltip title="EditOutlined Role">
+                              <IconButton size="small" onClick={() => {
                                 const keys = r.rolePermissions ? r.rolePermissions.map(rp => rp.permission?.key) : (r.permissions || []);
-                                setForm({ name: r.name, key: r.key, status: r.status, permissions: keys }); 
-                                setEditId(r.id); 
-                                setDialogOpen(true); 
+                                setForm({ name: r.name, key: r.key, status: r.status, permissions: keys });
+                                setEditId(r.id);
+                                setDialogOpen(true);
                               }}>
                                 <EditOutlinedIcon sx={{ fontSize: 17, color: '#60a5fa' }} />
                               </IconButton>
@@ -247,7 +240,7 @@ export default function RolesPage() {
       </Card>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>{editId ? 'Edit Role' : 'Create Role'}</DialogTitle>
+        <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>{editId ? 'EditOutlined Role' : 'Create Role'}</DialogTitle>
         <DialogContent sx={{ pt: 3, pb: 3 }}>
           <Grid container spacing={2} sx={{ mb: 3, mt: 1 }}>
             <Grid item xs={12} sm={6}>

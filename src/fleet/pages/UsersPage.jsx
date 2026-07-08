@@ -4,34 +4,14 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   MenuItem, Stack, TableContainer, Avatar, Typography, Chip, useTheme, useMediaQuery, Card, CircularProgress
 } from '@mui/material';
-import { Add, Edit, People, DeleteOutline as DeleteOutlineIcon } from '@mui/icons-material';
+import { Add, EditOutlined, People, DeleteOutline as DeleteOutlineIcon } from '@mui/icons-material';
 import { userService, roleService } from '../../services/api';
 import { StatusChip, PageHeader, ConfirmDialog } from '../components/Common';
-import { ALL_PERMISSIONS, DEFAULT_ROLES } from './RolesPage';
+import { ALL_PERMISSIONS } from './RolesPage';
 import { useAuth } from '../../contexts/AuthContext';
 
 const statuses = ['ACTIVE', 'INACTIVE', 'SUSPENDED'];
 const emptyForm = { name: '', email: '', password: '', mobile: '', roleId: '', status: 'ACTIVE' };
-
-const fallbackUsers = [
-  { 
-    id: 'cmqqj10kg00eju8ywgk1icyj0', 
-    name: 'Super Admin', 
-    username: 'admin',
-    email: 'admin@example.com', 
-    mobile: null,
-    status: 'ACTIVE',
-    role: { 
-      id: 'cmqqj0ryb0000u8ywkhvlwg2d', 
-      name: 'Super Admin', 
-      key: 'super_admin', 
-      status: 'ACTIVE',
-      permissions: ALL_PERMISSIONS
-    }
-  },
-  { id: 2, name: 'Fleet Manager', email: 'manager@fleet.com', mobile: '9000000002', role: { name: 'Manager' }, status: 'ACTIVE' },
-  { id: 3, name: 'Driver Operator', email: 'driver@fleet.com', mobile: '9000000003', role: { name: 'Driver' }, status: 'ACTIVE' },
-];
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -57,13 +37,13 @@ export default function UsersPage() {
       ]);
       const uData = uRes.status === 'fulfilled' ? uRes.value.data?.data ?? uRes.value.data : null;
       const uItems = uData?.items ?? (Array.isArray(uData) ? uData : []);
-      setUsers(uItems.length > 0 ? uItems : fallbackUsers);
+      setUsers(uItems);
       const rData = rRes.status === 'fulfilled' ? rRes.value.data?.data ?? rRes.value.data : null;
-      setRoles(Array.isArray(rData) && rData.length > 0 ? rData : (rData?.items && rData.items.length > 0 ? rData.items : DEFAULT_ROLES));
+      setRoles(Array.isArray(rData) ? rData : (rData?.items && Array.isArray(rData.items) ? rData.items : []));
     } catch (err) {
       console.error(err);
-      setUsers(fallbackUsers);
-      setRoles(DEFAULT_ROLES);
+      setUsers([]);
+      setRoles([]);
     }
     setLoading(false);
   }, []);
@@ -146,18 +126,18 @@ export default function UsersPage() {
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}><Chip label={u.role?.name || '—'} size="small" sx={{ bgcolor: '#7C6FF718', color: '#7C6FF7', fontWeight: 600, fontSize: '0.7rem' }} /></TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                      {u.role?.rolePermissions?.length || u.role?.permissions?.length || (u.role?.name === 'Super Admin' ? ALL_PERMISSIONS.length : u.role?.name === 'Admin' ? 32 : u.role?.name === 'Manager' ? 18 : 8)}
+                      {((u.role?.rolePermissions?.length ?? u.role?.permissions?.length) || 0)}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>Allocated</Typography>
                   </TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
-                    <Chip label={u.role?.name === 'Super Admin' ? 'Full Access' : u.role?.name === 'Manager' ? 'Elevated' : 'Restricted'} size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: '0.7rem', color: 'text.primary', borderColor: 'divider' }} />
+                    <Chip label={u.role?.name || 'No role'} size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: '0.7rem', color: 'text.primary', borderColor: 'divider' }} />
                   </TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}><StatusChip status={u.status} /></TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
-                    {u.role?.key !== 'super_admin' && u.username !== 'admin' && (
+                    {(hasPermission('user_update') || hasPermission('user_delete')) && (
                       <Stack direction="row" spacing={0.5}>
-                        {hasPermission('user_update') && <IconButton size="small" onClick={() => openEdit(u)} sx={{ color: '#60a5fa' }}><Edit fontSize="small" /></IconButton>}
+                        {hasPermission('user_update') && <IconButton size="small" onClick={() => openEdit(u)} sx={{ color: '#60a5fa' }}><EditOutlined fontSize="small" /></IconButton>}
                         {hasPermission('user_delete') && <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, item: u })} sx={{ color: '#ef4444' }}><DeleteOutlineIcon fontSize="small" /></IconButton>}
                       </Stack>
                     )}
@@ -170,7 +150,7 @@ export default function UsersPage() {
       </Card>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile} PaperProps={{ sx: { bgcolor: 'background.paper', backgroundImage: 'none' } }}>
-        <DialogTitle sx={{ color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>{selected ? 'Edit User' : 'Add User'}</DialogTitle>
+        <DialogTitle sx={{ color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>{selected ? 'EditOutlined User' : 'Add User'}</DialogTitle>
         <DialogContent>
           {error && <Typography color="error" variant="body2" sx={{ mt: 2 }}>{error}</Typography>}
           <Stack spacing={2.5} mt={1}>
@@ -196,11 +176,7 @@ export default function UsersPage() {
                         <Chip key={p.permission?.key || p.id || p.name || p || i} label={p.permission?.description || p.permission?.key || p.name || p} size="small" variant="outlined" sx={{ fontSize: '0.65rem', color: 'text.primary', borderColor: 'divider' }} />
                       ));
                     }
-                    // Fallbacks for display if API hasn't loaded permissions yet
-                    if (selectedRole?.name === 'Super Admin' || selectedRole?.name === 'Admin') return ALL_PERMISSIONS.slice(0, 15).map(p => <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontSize: '0.65rem', color: 'text.primary', borderColor: 'divider' }} />);
-                    if (selectedRole?.name === 'Manager' || selectedRole?.name === 'Fleet Manager') return ['trip_view', 'vehicle_view', 'driver_view'].map(p => <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontSize: '0.65rem', color: 'text.primary', borderColor: 'divider' }} />);
-                    if (selectedRole?.name === 'Driver') return ['trip_view'].map(p => <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontSize: '0.65rem', color: 'text.primary', borderColor: 'divider' }} />);
-                    return <Typography variant="caption" color="text.secondary">Default access policies apply</Typography>;
+                    return <Typography variant="caption" color="text.secondary">No permission details available</Typography>;
                   })()}
                 </Box>
               </Box>
