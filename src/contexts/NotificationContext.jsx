@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import Cookies from 'js-cookie';
 import { useSnackbar } from 'notistack';
 import { notificationService } from '../services/api';
 
@@ -44,7 +45,7 @@ export function NotificationProvider({ children }) {
   }, [notifications]);
 
   const syncNotifications = useCallback(async () => {
-    const token = localStorage.getItem('fleet_token');
+    const token = Cookies.get('fleet_token');
     if (!token) return;
 
     setLoadingNotifications(true);
@@ -52,12 +53,10 @@ export function NotificationProvider({ children }) {
       const res = await notificationService.getAll();
       const apiNotifications = normalizeNotifications(res.data?.data || res.data?.notifications || res.data || []);
 
-      if (apiNotifications.length > 0) {
-        setNotifications((prev) => {
-          const localOnly = prev.filter((item) => item.source !== 'api');
-          return [...apiNotifications, ...localOnly].slice(0, 50);
-        });
-      }
+      setNotifications((prev) => {
+        const localOnly = prev.filter((item) => item.source !== 'api');
+        return [...apiNotifications, ...localOnly].slice(0, 50);
+      });
     } catch (error) {
       if (error.response?.status !== 401) {
         console.warn('Unable to load notifications from API:', error);
@@ -90,10 +89,12 @@ export function NotificationProvider({ children }) {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+    notificationService.markAsRead(id).catch(() => {});
   }, []);
 
   const markAllAsRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    notificationService.markAllAsRead().catch(() => {});
   }, []);
 
   const clearAll = useCallback(() => {

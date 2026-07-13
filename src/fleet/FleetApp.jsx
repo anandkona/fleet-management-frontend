@@ -1,8 +1,9 @@
-import React, { useCallback, Suspense, lazy, useState } from 'react';
+import React, { useCallback, Suspense, lazy, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, ThemeProvider, CssBaseline, CircularProgress, Drawer } from '@mui/material';
 import { getTheme } from './theme';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 import FleetSidebar from './FleetSidebar';
 import FleetHeader from './FleetHeader';
 import api from '../services/api';
@@ -25,8 +26,16 @@ const RolesPage = lazy(() => import('./pages/RolesPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const FuelPage = lazy(() => import('./pages/FuelPage'));
 const DispatchBoardPage = lazy(() => import('./pages/DispatchBoardPage'));
+const DriverDashboard = lazy(() => import('./pages/DriverDashboard'));
+const DriverTripsPage = lazy(() => import('./pages/DriverTripsPage'));
+const DriverDocumentsPage = lazy(() => import('./pages/DriverDocumentsPage'));
+const DriverProfilePage = lazy(() => import('./pages/DriverProfilePage'));
 
-const VALID_TABS = ['dashboard', 'tracking', 'dispatch', 'vehicle-ops', 'trip-logs', 'drivers', 'inventory', 'maintenance', 'repairs', 'expenses', 'fuel', 'finance', 'ai-insights', 'reports', 'documents', 'users', 'roles', 'settings'];
+const VALID_TABS = [
+  'dashboard', 'tracking', 'dispatch', 'vehicle-ops', 'trip-logs', 'drivers', 'inventory', 'maintenance',
+  'repairs', 'expenses', 'fuel', 'finance', 'ai-insights', 'reports', 'documents', 'users', 'roles', 'settings',
+  'driver-dashboard', 'driver-trips', 'driver-documents', 'driver-profile'
+];
 
 const pageMap = {
   dashboard: DashboardPage,
@@ -47,6 +56,10 @@ const pageMap = {
   users: UsersPage,
   roles: RolesPage,
   settings: SettingsPage,
+  'driver-dashboard': DriverDashboard,
+  'driver-trips': DriverTripsPage,
+  'driver-documents': DriverDocumentsPage,
+  'driver-profile': DriverProfilePage,
 };
 
 const PageLoader = () => (
@@ -55,11 +68,62 @@ const PageLoader = () => (
   </Box>
 );
 
+const tabPermissions = {
+  'vehicle-ops': 'vehicle_view',
+  'trip-logs': 'trip_view',
+  fuel: 'fuel_view',
+  drivers: 'driver_view',
+  dispatch: 'dispatch_view',
+  inventory: 'asset_view',
+  maintenance: 'maintenance_view',
+  repairs: 'repair_view',
+  expenses: 'expense_view',
+  finance: 'finance_view',
+  'ai-insights': 'report_view',
+  reports: 'report_view',
+  documents: 'document_metadata_view',
+  users: 'user_view',
+  roles: 'role_view',
+  settings: 'settings_view',
+  'driver-dashboard': 'driver_my_dashboard_view',
+  'driver-trips': 'driver_my_trips_view',
+  'driver-documents': 'driver_my_documents_view',
+  'driver-profile': 'driver_my_profile_view'
+};
+
 export default function FleetApp() {
   const { tab } = useParams();
   const navigate = useNavigate();
+  const { user, hasPermission, loading } = useAuth();
+  const roleName = (user?.role && typeof user.role === 'object')
+    ? (user.role.key || user.role.name || '')
+    : (typeof user?.role === 'string' && (user.role.includes(' ') || user.role.includes('_')) ? user.role : '');
+  const roleLabel = roleName ? String(roleName).toLowerCase().replace(/_/g, ' ') : '';
+
   const activeTab = VALID_TABS.includes(tab) ? tab : 'dashboard';
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const isDriverTab = activeTab.startsWith('driver-');
+    if (isDriverTab && roleLabel !== 'driver') {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
+    const requiredPermission = tabPermissions[activeTab];
+    if (requiredPermission && !hasPermission(requiredPermission)) {
+      // Find the first tab they do have permission for
+      const firstAllowedTab = Object.keys(tabPermissions).find(t => {
+        if (t.startsWith('driver-') && roleLabel !== 'driver') return false;
+        return hasPermission(tabPermissions[t]);
+      });
+      if (firstAllowedTab) {
+        navigate(`/${firstAllowedTab}`, { replace: true });
+      }
+    }
+  }, [activeTab, hasPermission, loading, navigate, roleLabel]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);

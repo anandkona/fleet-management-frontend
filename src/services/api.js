@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api/v1`
@@ -10,17 +11,23 @@ const api = axios.create({
   timeout: 30000,
 });
 
+const COOKIE_OPTIONS = {
+  secure: window.location.protocol === 'https:',
+  sameSite: 'Strict',
+  path: '/',
+};
+
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('fleet_token');
+  const token = Cookies.get('fleet_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 }, (error) => Promise.reject(error));
 
 api.interceptors.response.use((response) => response, (error) => {
   if (error.response?.status === 401) {
-    localStorage.removeItem('fleet_token');
+    Cookies.remove('fleet_token', COOKIE_OPTIONS);
+    Cookies.remove('fleet_refresh_token', COOKIE_OPTIONS);
     localStorage.removeItem('fleet_user');
-    localStorage.removeItem('fleet_refresh_token');
     localStorage.removeItem('fleet_permissions');
   }
   return Promise.reject(error);
@@ -45,7 +52,10 @@ export const authService = {
 
 // ─── NOTIFICATIONS ───────────────────────────────────────────────────────
 export const notificationService = {
-  getAll: () => api.get('/me/notifications'),
+  getAll: (params) => api.get('/me/notifications', { params }),
+  getUnreadCount: () => api.get('/me/notifications/unread-count'),
+  markAsRead: (id) => api.get(`/me/notifications/${id}/ack`),
+  markAllAsRead: () => api.get('/me/notifications-ack-all'),
 };
 
 // ─── VEHICLES ────────────────────────────────────────────────────────────────
@@ -229,5 +239,19 @@ export const updateRolePermissions = (token, id, permissionKeys) =>
 // ─── PERMISSIONS (standalone functions) ─────────────────────────────────────
 export const getPermissions = (token) =>
   api.get('/permissions', { headers: { Authorization: `Bearer ${token}` } });
+
+// ─── DRIVER PORTAL ────────────────────────────────────────────────────────────
+export const driverPortalService = {
+  getProfile: () => api.get('/me/driver-profile'),
+  getTrips: (params) => api.get('/me/driver-trips', { params }),
+  startTrip: (id, data) => api.post(`/me/driver-trips/${id}/start`, data),
+  endTrip: (id, data) => api.post(`/me/driver-trips/${id}/end`, data),
+  uploadPod: (id, formData) => api.post(`/me/driver-trips/${id}/pod`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getDocuments: () => api.get('/me/driver-documents'),
+  uploadDocument: (formData) => api.post('/me/driver-documents', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getAdvances: () => api.get('/me/driver-advances'),
+  getSettlements: () => api.get('/me/driver-settlements'),
+  getVehicles: () => api.get('/me/driver-vehicles'),
+};
 
 export default api;

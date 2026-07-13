@@ -63,18 +63,7 @@ export default function DispatchBoardPage() {
       fetchData(); // Refresh the board
     } catch (err) {
       console.error(err);
-      // Fallback for visual update if the API fails or is not fully implemented
-      setSnack({ open: true, msg: 'Assignment mock successful (API failed)', severity: 'warning' });
-      setPendingAssignments(prev => {
-        const next = { ...prev };
-        delete next[tripId];
-        return next;
-      });
-      // We manually update local state to hide it from unassigned for demonstration
-      setBoardData(prev => ({
-        ...prev,
-        unassignedTrips: prev.unassignedTrips.filter(t => t.id !== tripId)
-      }));
+      setSnack({ open: true, msg: 'Failed to assign trip', severity: 'error' });
     }
   };
 
@@ -168,7 +157,7 @@ export default function DispatchBoardPage() {
   const blockedCount = unavailableDrivers.length + unavailableVehicles.length;
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ p: { xs: 2, md: 4 }, minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <ToggleButtonGroup size="small" value={viewMode} exclusive onChange={(e, v) => v && setViewMode(v)}>
@@ -320,12 +309,15 @@ export default function DispatchBoardPage() {
               </Box>
             </Card>
           ) : (
-            <Grid container spacing={3} sx={{ flexGrow: 1 }}>
-              <Grid item xs={12} md={4}>
-                <Box sx={{ p: 2.5, bgcolor: '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>Trips</Typography>
-                  <Typography variant="body2" color="text.secondary" mb={3}>Drop a driver and vehicle here</Typography>
-                  <Stack spacing={2}>
+            <Grid container spacing={4} sx={{ flexGrow: 1, alignItems: 'stretch', maxHeight: 'calc(100vh - 180px)', overflow: 'hidden' }}>
+              <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+                <Box sx={{ p: 3, bgcolor: '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+                    <DynamicFeedIcon sx={{ color: '#f59e0b' }} />
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>Trips</Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" mb={2}>Drop a driver and vehicle here</Typography>
+                  <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 1 }}>
                     {unassignedTrips.map(t => (
                       <Card
                         key={t.id}
@@ -381,92 +373,107 @@ export default function DispatchBoardPage() {
                 </Box>
               </Grid>
 
-              <Grid item xs={12} md={4}>
-                <Box sx={{ p: 2.5, bgcolor: '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
-                    Drivers <Chip label={`${driversReady} ready`} size="small" sx={{ bgcolor: '#d1fae5', color: '#059669', fontWeight: 700 }} />
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={3}>Drag a driver</Typography>
-                  <Stack spacing={2} sx={{ maxHeight: '600px', overflowY: 'auto', pr: 1 }}>
+              <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+                <Box sx={{ p: 3, bgcolor: '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+                    <PersonIcon sx={{ color: '#4f46e5' }} />
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>Drivers</Typography>
+                    <Chip label={`${driversReady} ready`} size="small" sx={{ bgcolor: '#d1fae5', color: '#059669', fontWeight: 700 }} />
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" mb={2}>Drag a driver onto a trip</Typography>
+                  <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 1 }}>
                     {availableDrivers.map(d => (
                       <Card
                         key={d.id}
                         draggable
                         onDragStart={(e) => { e.dataTransfer.setData('driver', JSON.stringify(d)); }}
-                        sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'grab', transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}
+                        sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'grab', borderLeft: '5px solid #4f46e5', transition: 'all 0.2s', overflow: 'hidden', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}
                       >
-                        <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <PersonIcon />
+                        <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <PersonIcon sx={{ fontSize: 28 }} />
                         </Box>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{d.name}</Typography>
-                          <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>{d.mobile}</Typography>
-                          <Chip label="Ready" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, color: '#10b981', bgcolor: '#d1fae5', borderRadius: 1 }} />
+                        <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
+                          <Typography variant="body1" sx={{ fontWeight: 700, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</Typography>
+                          <Typography variant="body2" color="text.secondary" display="block" sx={{ lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mt: 0.25 }}>{d.mobile || '—'}</Typography>
+                          {d.licenseNumber && <Typography variant="body2" color="text.secondary" display="block" sx={{ lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Lic: {d.licenseNumber}</Typography>}
+                          <Chip label="Ready" size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: '#10b981', bgcolor: '#d1fae5', borderRadius: 1, mt: 1 }} />
                         </Box>
                       </Card>
                     ))}
                     {unavailableDrivers.map(u => {
                       const d = u.driver;
                       return (
-                        <Card key={d.id} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2.5, opacity: 0.7 }}>
-                          <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#f3f4f6', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <PersonIcon />
+                        <Card key={d.id} sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, opacity: 0.6, borderLeft: '5px solid #d1d5db', overflow: 'hidden' }}>
+                          <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#f3f4f6', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <PersonIcon sx={{ fontSize: 28 }} />
                           </Box>
-                          <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{d.name}</Typography>
-                            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>{d.mobile}</Typography>
-                            <Chip label={u.reason} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, color: '#ef4444', bgcolor: '#fee2e2', borderRadius: 1 }} />
+                          <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 700, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</Typography>
+                            <Typography variant="body2" color="text.secondary" display="block" sx={{ lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mt: 0.25 }}>{d.mobile || '—'}</Typography>
+                            <Chip label={u.reason} size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: '#ef4444', bgcolor: '#fee2e2', borderRadius: 1, mt: 1 }} />
                           </Box>
                         </Card>
                       );
                     })}
+                    {availableDrivers.length === 0 && unavailableDrivers.length === 0 && (
+                      <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>No drivers</Typography>
+                    )}
                   </Stack>
                 </Box>
               </Grid>
 
-              <Grid item xs={12} md={4}>
-                <Box sx={{ p: 2.5, bgcolor: '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
-                    Vehicles <Chip label={`${vehiclesReady} ready`} size="small" sx={{ bgcolor: '#dbeafe', color: '#2563eb', fontWeight: 700 }} />
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={3}>Drag a vehicle</Typography>
-                  <Stack spacing={2} sx={{ maxHeight: '600px', overflowY: 'auto', pr: 1 }}>
+              <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+                <Box sx={{ p: 3, bgcolor: '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+                    <LocalShippingIcon sx={{ color: '#db2777' }} />
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>Vehicles</Typography>
+                    <Chip label={`${vehiclesReady} ready`} size="small" sx={{ bgcolor: '#dbeafe', color: '#2563eb', fontWeight: 700 }} />
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" mb={2}>Drag a vehicle onto a trip</Typography>
+                  <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 1 }}>
                     {availableVehicles.map(v => (
                       <Card
                         key={v.id}
                         draggable
                         onDragStart={(e) => { e.dataTransfer.setData('vehicle', JSON.stringify(v)); }}
-                        sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'grab', transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}
+                        sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'grab', borderLeft: '5px solid #db2777', transition: 'all 0.2s', overflow: 'hidden', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}
                       >
-                        <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#fce7f3', color: '#db2777', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <LocalShippingIcon />
+                        <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#fce7f3', color: '#db2777', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <LocalShippingIcon sx={{ fontSize: 28 }} />
                         </Box>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {v.vehicleNumber} <Chip label={v.vehicleType} size="small" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />
+                        <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
+                          <Typography variant="body1" sx={{ fontWeight: 700, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {v.vehicleNumber}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>{v.brand} &middot; {v.model}</Typography>
-                          <Chip label="Ready" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, color: '#3b82f6', bgcolor: '#dbeafe', borderRadius: 1 }} />
+                          <Typography variant="body2" color="text.secondary" display="block" sx={{ lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mt: 0.25 }}>
+                            {v.vehicleType || '—'} {v.brand ? `· ${v.brand}` : ''} {v.model ? v.model : ''}
+                          </Typography>
+                          <Chip label="Ready" size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: '#3b82f6', bgcolor: '#dbeafe', borderRadius: 1, mt: 1 }} />
                         </Box>
                       </Card>
                     ))}
                     {unavailableVehicles.map(u => {
                       const v = u.vehicle;
                       return (
-                        <Card key={v.id} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2.5, opacity: 0.7 }}>
-                          <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#f3f4f6', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <LocalShippingIcon />
+                        <Card key={v.id} sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, opacity: 0.6, borderLeft: '5px solid #d1d5db', overflow: 'hidden' }}>
+                          <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#f3f4f6', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <LocalShippingIcon sx={{ fontSize: 28 }} />
                           </Box>
-                          <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-                              {v.vehicleNumber} <Chip label={v.vehicleType} size="small" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />
+                          <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 700, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {v.vehicleNumber}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>{v.brand} &middot; {v.model}</Typography>
-                            <Chip label={u.reason} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, color: '#ef4444', bgcolor: '#fee2e2', borderRadius: 1 }} />
+                            <Typography variant="body2" color="text.secondary" display="block" sx={{ lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mt: 0.25 }}>
+                              {v.vehicleType || '—'} {v.brand ? `· ${v.brand}` : ''} {v.model ? v.model : ''}
+                            </Typography>
+                            <Chip label={u.reason} size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: '#ef4444', bgcolor: '#fee2e2', borderRadius: 1, mt: 1 }} />
                           </Box>
                         </Card>
                       );
                     })}
+                    {availableVehicles.length === 0 && unavailableVehicles.length === 0 && (
+                      <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>No vehicles</Typography>
+                    )}
                   </Stack>
                 </Box>
               </Grid>

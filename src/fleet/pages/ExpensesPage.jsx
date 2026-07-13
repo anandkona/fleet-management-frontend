@@ -28,12 +28,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 
 const EXPENSE_CATEGORIES = ['Tolls', 'Food & Meals', 'Lodging', 'Maintenance', 'Supplies', 'Fines', 'Other'];
 
-const fallbackExpenses = [
-  { id: 1, vehicle: 'AP05-T123', vehicleId: 'AP05-T123', category: 'Tolls', amount: 450, expenseDate: '2026-06-22T10:00:00Z', vendor: 'NHAI', receiptNumber: 'TL-892', notes: 'Highway toll' },
-  { id: 2, vehicle: 'AP05-T087', vehicleId: 'AP05-T087', category: 'Food & Meals', amount: 800, expenseDate: '2026-06-21T14:30:00Z', vendor: 'Highway Dhaba', receiptNumber: 'FB-102', notes: 'Driver lunch' },
-  { id: 3, vehicle: 'AP05-T201', vehicleId: 'AP05-T201', category: 'Lodging', amount: 1200, expenseDate: '2026-06-20T20:00:00Z', vendor: 'Rest Stop Inn', receiptNumber: 'HI-442', notes: 'Overnight stay' },
-  { id: 4, vehicle: 'AP05-T089', vehicleId: 'AP05-T089', category: 'Supplies', amount: 2500, expenseDate: '2026-06-19T09:15:00Z', vendor: 'Auto Parts Co', receiptNumber: 'AP-990', notes: 'Coolant and oil' },
-];
+
 
 const EMPTY = { vehicleId: '', tripId: '', driverId: '', category: 'Tolls', amount: '', expenseDate: '', vendor: '', receiptNumber: '', notes: '' };
 
@@ -61,8 +56,8 @@ export default function ExpensesPage() {
     try {
       const res = await api.get('/expenses', { params: { limit: 100 } });
       const items = res.data?.data?.items ?? (Array.isArray(res.data?.data) ? res.data.data : []);
-      setRows(items.length > 0 ? items : fallbackExpenses);
-    } catch (err) { console.error(err); setRows(fallbackExpenses); }
+      setRows(items || []);
+    } catch (err) { console.error(err); setRows([]); }
     finally { setLoading(false); }
   }, []);
 
@@ -132,31 +127,6 @@ export default function ExpensesPage() {
         notes: form.notes || undefined,
       };
 
-      // If vehicleId is not a real MongoDB 24-char hex string, it's likely a demo vehicle string. Mock the save!
-      if (!/^[0-9a-fA-F]{24}$/.test(payload.vehicleId) && fallbackExpenses.some(f => f.vehicle === payload.vehicleId || String(f.id) === payload.vehicleId) || payload.vehicleId.includes('AP05')) {
-        const newLog = {
-          id: Date.now(),
-          vehicle: payload.vehicleId,
-          vehicleId: payload.vehicleId,
-          category: payload.category,
-          amount: payload.amount,
-          expenseDate: payload.expenseDate,
-          vendor: payload.vendor,
-          receiptNumber: payload.receiptNumber,
-          status: 'DRAFT',
-          notes: payload.notes
-        };
-        if (editRecord) {
-          setRows(prev => prev.map(r => (r.id === editRecord.id || r._id === editRecord._id) ? { ...r, ...newLog, id: editRecord.id || editRecord._id } : r));
-        } else {
-          setRows(prev => [newLog, ...prev]);
-        }
-        toast(editRecord ? 'Expense updated (Demo)' : 'Expense added (Demo)');
-        addNotification('Info', 'Saved locally (Demo)', 'info');
-        closeForm();
-        return;
-      }
-
       if (editRecord) { await api.patch(`/expenses/${editRecord.id || editRecord._id}`, payload); toast('Expense updated'); addNotification('Success', 'Expense updated successfully', 'success'); }
       else { await api.post('/expenses', payload); toast('Expense added'); addNotification('Success', 'Expense added successfully', 'success'); }
       closeForm(); fetchData();
@@ -170,16 +140,11 @@ export default function ExpensesPage() {
 
   const handleDelete = async () => {
     try { 
-      if (!/^[0-9a-fA-F]{24}$/.test(String(deleteId))) {
-        setRows(prev => prev.filter(r => String(r.id || r._id) !== String(deleteId)));
-        toast('Record deleted (Demo)');
-      } else {
         await api.delete(`/expenses/${deleteId}`); 
         setRows(prev => prev.filter(r => String(r.id || r._id) !== String(deleteId)));
         toast('Record deleted'); 
         addNotification('Deleted', 'Expense deleted successfully', 'warning');
         fetchData(); 
-      }
       setDeleteId(null); 
     }
     catch (err) { 
@@ -202,11 +167,6 @@ export default function ExpensesPage() {
     if (processingId) return;
     setProcessingId(id);
     try {
-      if (typeof id === 'number' || fallbackExpenses.some(f => String(f.id) === String(id))) {
-        setRows(prev => prev.map(r => String(r.id) === String(id) || String(r._id) === String(id) ? { ...r, status: action === 'submit' ? 'SUBMITTED' : action === 'approve' ? 'APPROVED' : action === 'reject' ? 'REJECTED' : 'CANCELLED' } : r));
-        toast(`Expense ${action}d successfully`);
-        return;
-      }
       await api.post(`/expenses/${id}/${action}`);
       toast(`Expense ${action}d successfully`);
       addNotification('Success', `Expense ${action}d successfully`, 'success');

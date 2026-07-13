@@ -19,20 +19,7 @@ import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 
-const fallbackCategories = [];
 
-const fallbackAssets = [
-  { id: '1', _id: '1', assetCode: 'ASSET-010', name: 'Tire Pressure Gauge Digital', assetCategory: { name: 'Tools & Equipment' }, serialNumber: 'TP-2024-010', currentStatus: 'AVAILABLE' },
-  { id: '2', _id: '2', assetCode: 'ASSET-009', name: 'Mobile Tablet Mount', assetCategory: { name: 'Electronics' }, serialNumber: 'MT-2024-009', currentStatus: 'AVAILABLE' },
-  { id: '3', _id: '3', assetCode: 'ASSET-008', name: 'Tool Box Complete Set', assetCategory: { name: 'Tools & Equipment' }, serialNumber: 'TB-2023-008', currentStatus: 'DAMAGED' },
-  { id: '4', _id: '4', assetCode: 'ASSET-007', name: 'LED Warning Light Bar', assetCategory: { name: 'Safety Equipment' }, serialNumber: 'LW-2024-007', currentStatus: 'AVAILABLE' },
-  { id: '5', _id: '5', assetCode: 'ASSET-006', name: 'OBD2 Diagnostic Scanner', assetCategory: { name: 'Electronics' }, serialNumber: 'OB-2023-006', currentStatus: 'AVAILABLE' },
-  { id: '6', _id: '6', assetCode: 'ASSET-005', name: 'Dashcam 4K Front+Rear', assetCategory: { name: 'Electronics' }, serialNumber: 'DC-2024-005', currentStatus: 'AVAILABLE' },
-  { id: '7', _id: '7', assetCode: 'ASSET-004', name: 'Reflective Vest Set (5)', assetCategory: { name: 'Safety Equipment' }, serialNumber: 'RV-2024-004', currentStatus: 'AVAILABLE' },
-  { id: '8', _id: '8', assetCode: 'ASSET-003', name: 'Hydraulic Jack 3 Ton', assetCategory: { name: 'Tools & Equipment' }, serialNumber: 'HJ-2023-003', currentStatus: 'AVAILABLE' },
-  { id: '9', _id: '9', assetCode: 'ASSET-002', name: 'First Aid Kit Premium', assetCategory: { name: 'Safety Equipment' }, serialNumber: 'FA-2024-002', currentStatus: 'AVAILABLE' },
-  { id: '10', _id: '10', assetCode: 'ASSET-001', name: 'Fire Extinguisher 5kg', assetCategory: { name: 'Safety Equipment' }, serialNumber: 'FE-2024-001', currentStatus: 'AVAILABLE' }
-];
 
 export default function InventoryPage() {
   const { addNotification } = useNotification();
@@ -81,19 +68,19 @@ export default function InventoryPage() {
         const items = assetsRes.value.data?.data?.items ?? (Array.isArray(assetsRes.value.data?.data) ? assetsRes.value.data.data : []);
         setAssets(items);
       } else {
-        setAssets([...fallbackAssets]);
+        setAssets([]);
       }
 
       if (catsRes.status === 'fulfilled') {
         const cats = catsRes.value.data?.data ?? [];
         setCategoriesList(cats);
       } else {
-        setCategoriesList([...fallbackCategories]);
+        setCategoriesList([]);
       }
     } catch (err) {
       console.error(err);
-      setAssets([...fallbackAssets]);
-      setCategoriesList([...fallbackCategories]);
+      setAssets([]);
+      setCategoriesList([]);
     } finally {
       setLoading(false);
     }
@@ -111,15 +98,8 @@ export default function InventoryPage() {
       setOpenDialog(false); setEditItem(null); fetchData();
     } catch (err) {
       console.error(err);
-      toast('Saved locally (Backend offline)', 'info');
-      if (editItem) {
-        const idx = fallbackAssets.findIndex(a => a.id === editItem.id || a._id === editItem._id);
-        if (idx >= 0) fallbackAssets[idx] = { ...fallbackAssets[idx], ...form };
-      } else {
-        fallbackAssets.push({ ...form, id: Date.now().toString(), _id: Date.now().toString(), assetCode: form.assetCode || `AST-${Date.now().toString().slice(-4)}` });
-      }
-      addNotification('Info', 'Saved locally (Backend offline)', 'info');
-      setOpenDialog(false); setEditItem(null); fetchData();
+      toast('Failed to save asset', 'error');
+      addNotification('Error', 'Failed to save asset', 'error');
     }
   };
 
@@ -131,10 +111,7 @@ export default function InventoryPage() {
       fetchData();
     } catch (err) {
       console.error(err);
-      toast('Deleted locally (Backend offline)', 'info');
-      const idx = fallbackAssets.findIndex(a => a.id === item.id || a._id === item._id);
-      if (idx >= 0) fallbackAssets.splice(idx, 1);
-      fetchData();
+      toast('Failed to delete asset', 'error');
     }
   };
 
@@ -148,14 +125,8 @@ export default function InventoryPage() {
       setCatOpenDialog(false); setEditCatItem(null); fetchData();
     } catch (err) {
       console.error(err);
-      toast('Saved locally (Backend offline)', 'info');
-      if (editCatItem) {
-        const idx = fallbackCategories.findIndex(c => c.id === editCatItem.id || c._id === editCatItem._id);
-        if (idx >= 0) fallbackCategories[idx] = { ...fallbackCategories[idx], ...catForm };
-      } else {
-        fallbackCategories.push({ ...catForm, id: Date.now().toString(), _id: Date.now().toString(), _count: { assets: 0 } });
-      }
-      setCatOpenDialog(false); setEditCatItem(null); fetchData();
+      toast('Failed to save category', 'error');
+      addNotification('Error', 'Failed to save category', 'error');
     }
   };
 
@@ -167,10 +138,7 @@ export default function InventoryPage() {
       fetchData();
     } catch (err) {
       console.error(err);
-      toast('Deleted locally (Backend offline)', 'info');
-      const idx = fallbackCategories.findIndex(c => c.id === cat.id || c._id === cat._id);
-      if (idx >= 0) fallbackCategories.splice(idx, 1);
-      fetchData();
+      toast('Failed to delete category', 'error');
     }
   };
 

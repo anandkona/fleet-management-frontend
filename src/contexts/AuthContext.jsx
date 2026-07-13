@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import Cookies from 'js-cookie';
 import { authService } from '../services/api';
+
+const COOKIE_OPTIONS = {
+  secure: window.location.protocol === 'https:',
+  sameSite: 'Strict',
+  path: '/',
+};
 
 const AuthContext = createContext(null);
 
@@ -33,7 +40,7 @@ export default function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('fleet_token');
+    const token = Cookies.get('fleet_token');
     const persistedUser = readStoredUser();
     const persistedPermissions = readStoredPermissions();
 
@@ -66,9 +73,9 @@ export default function AuthProvider({ children }) {
             setPermissions(persistedPermissions);
           }
         } else {
-          localStorage.removeItem('fleet_token');
+          Cookies.remove('fleet_token', COOKIE_OPTIONS);
+          Cookies.remove('fleet_refresh_token', COOKIE_OPTIONS);
           localStorage.removeItem('fleet_user');
-          localStorage.removeItem('fleet_refresh_token');
           localStorage.removeItem('fleet_permissions');
           setUser(null);
           setPermissions([]);
@@ -83,8 +90,8 @@ export default function AuthProvider({ children }) {
     const accessToken = data?.accessToken || data?.token || data?.access_token;
     const refreshToken = data?.refreshToken || data?.refresh_token;
 
-    if (accessToken) localStorage.setItem('fleet_token', accessToken);
-    if (refreshToken) localStorage.setItem('fleet_refresh_token', refreshToken);
+    if (accessToken) Cookies.set('fleet_token', accessToken, COOKIE_OPTIONS);
+    if (refreshToken) Cookies.set('fleet_refresh_token', refreshToken, COOKIE_OPTIONS);
 
     const userData = data?.user || data?.profile || null;
     if (userData) {
@@ -113,21 +120,21 @@ export default function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    const refreshToken = localStorage.getItem('fleet_refresh_token');
+    const refreshToken = Cookies.get('fleet_refresh_token');
     try {
       if (refreshToken) await authService.logout(refreshToken);
     } catch {
       // ignore logout API errors
     }
-    localStorage.removeItem('fleet_token');
+    Cookies.remove('fleet_token', COOKIE_OPTIONS);
+    Cookies.remove('fleet_refresh_token', COOKIE_OPTIONS);
     localStorage.removeItem('fleet_user');
-    localStorage.removeItem('fleet_refresh_token');
     localStorage.removeItem('fleet_permissions');
     setUser(null);
     setPermissions([]);
   }, []);
 
-  const isAuthenticated = !!user && !!localStorage.getItem('fleet_token');
+  const isAuthenticated = !!user && !!Cookies.get('fleet_token');
 
   const getNormalizedRoleKey = (role) => {
     const key = role?.key || role?.name || '';
@@ -135,8 +142,8 @@ export default function AuthProvider({ children }) {
   };
 
   const ROLE_PERMISSION_FALLBACKS = {
-    super_admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view'],
-    admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view'],
+    super_admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view', 'dispatch_view', 'dispatch_assign'],
+    admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view', 'dispatch_view', 'dispatch_assign'],
     supervisor: ['trip_view', 'vehicle_view', 'driver_view', 'report_view'],
     manager: ['trip_view', 'vehicle_view', 'driver_view', 'report_view'],
     mechanic: ['maintenance_view', 'repair_view'],

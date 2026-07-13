@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   List,
@@ -35,6 +35,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { ConfirmDialog } from './components/Common';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { dispatchService } from '../services/api';
 
 const menuConfig = [
   {
@@ -45,13 +46,22 @@ const menuConfig = [
     ]
   },
   {
+    category: 'DRIVER PORTAL',
+    items: [
+      { id: 'driver-dashboard', label: 'My Dashboard', icon: <DashboardIcon />, permission: 'driver_my_dashboard_view' },
+      { id: 'driver-trips', label: 'My Trips', icon: <AssignmentIcon />, permission: 'driver_my_trips_view' },
+      { id: 'driver-documents', label: 'My Documents', icon: <DescriptionIcon />, permission: 'driver_my_documents_view' },
+      { id: 'driver-profile', label: 'My Profile', icon: <PeopleIcon />, permission: 'driver_my_profile_view' }
+    ]
+  },
+  {
     category: 'OPERATIONS',
     items: [
       { id: 'vehicle-ops', label: 'Vehicle Ops', icon: <LocalShippingIcon />, badge: '3', badgeColor: 'black', permission: 'vehicle_view' },
       { id: 'trip-logs', label: 'Trip Logs', icon: <AssignmentIcon />, permission: 'trip_view' },
       { id: 'fuel', label: 'Fuel Logs', icon: <LocalGasStationIcon />, permission: 'fuel_view' },
       { id: 'drivers', label: 'Drivers', icon: <PeopleIcon />, permission: 'driver_view' },
-      { id: 'dispatch', label: 'Dispatch Board', icon: <DynamicFeedIcon />, permission: 'trip_view' }
+      { id: 'dispatch', label: 'Dispatch Board', icon: <DynamicFeedIcon />, permission: 'dispatch_view' }
     ]
   },
   {
@@ -91,9 +101,23 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [dispatchSummary, setDispatchSummary] = useState(null);
   const navigate = useNavigate();
 
   const { user, permissions, logout, hasPermission } = useAuth();
+
+  useEffect(() => {
+    // Only fetch if user has permission to view dispatch board to avoid unauthorized errors
+    if (hasPermission('trip_view') || hasPermission('vehicle_view') || hasPermission('driver_view')) {
+      dispatchService.getBoard()
+        .then(res => {
+          if (res.data?.data?.summary) {
+            setDispatchSummary(res.data.data.summary);
+          }
+        })
+        .catch(err => console.error("Failed to fetch dispatch summary for badges", err));
+    }
+  }, [hasPermission]);
 
   const displayName = [user?.name, user?.fullName, user?.email].find(Boolean) || '';
   const roleName = (user?.role && typeof user.role === 'object')
@@ -105,10 +129,28 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
     : (user?.email ? String(user.email).charAt(0).toUpperCase() : '');
 
   const visibleMenuConfig = menuConfig.map(section => {
+    if (section.category === 'DRIVER PORTAL' && roleLabel !== 'driver') {
+      return { ...section, items: [] };
+    }
     const allowedItems = section.items.filter(item => {
       // If the item doesn't explicitly require a permission, always show it.
       if (!item.permission) return true;
       return hasPermission(item.permission);
+    }).map(item => {
+      // Inject dynamic badges based on dispatch board summary
+      if (dispatchSummary) {
+        if (item.id === 'vehicle-ops') {
+          return { ...item, badge: String(dispatchSummary.availableVehicles || 0), badgeColor: 'black' };
+        }
+        if (item.id === 'drivers') {
+          return { ...item, badge: String(dispatchSummary.availableDrivers || 0), badgeColor: 'info' };
+        }
+        if (item.id === 'dispatch') {
+          const unassigned = dispatchSummary.unassignedTrips || 0;
+          return { ...item, badge: String(unassigned), badgeColor: unassigned > 0 ? 'warning' : 'black' };
+        }
+      }
+      return item;
     });
     return { ...section, items: allowedItems };
   }).filter(section => section.items.length > 0);

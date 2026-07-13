@@ -30,17 +30,6 @@ import { useNotification } from '../../contexts/NotificationContext';
 const VEHICLE_TYPES = ['Truck', 'Van', 'Car', 'Bus', 'SUV'];
 const FUEL_TYPES = ['Diesel', 'Petrol', 'CNG', 'Electric'];
 
-const fallbackVehicles = [
-  { id: 1, licensePlate: 'AP05-T123', vehicleNumber: 'AP05-T123', brand: 'Tata Prima', vehicleType: 'Truck', fuelType: 'Diesel', status: 'AVAILABLE', fuelLevel: 85, odometer: 45230, driver: 'Rajesh Kumar' },
-  { id: 2, licensePlate: 'AP05-T087', vehicleNumber: 'AP05-T087', brand: 'Ashok Leyland', vehicleType: 'Truck', fuelType: 'Diesel', status: 'ON_TRIP', fuelLevel: 62, odometer: 31450, driver: 'Suresh Babu' },
-  { id: 3, licensePlate: 'AP05-T201', vehicleNumber: 'AP05-T201', brand: 'Eicher Pro', vehicleType: 'Truck', fuelType: 'Diesel', status: 'AVAILABLE', fuelLevel: 91, odometer: 12870, driver: 'Mohan Reddy' },
-  { id: 4, licensePlate: 'AP05-T043', vehicleNumber: 'AP05-T043', brand: 'Mahindra Blazo', vehicleType: 'Truck', fuelType: 'Diesel', status: 'UNDER_MAINTENANCE', fuelLevel: 45, odometer: 67800, driver: 'Venkat Rao' },
-  { id: 5, licensePlate: 'AP05-T089', vehicleNumber: 'AP05-T089', brand: 'Tata Ace', vehicleType: 'Van', fuelType: 'Diesel', status: 'AVAILABLE', fuelLevel: 78, odometer: 22100, driver: 'Prasad Nair' },
-  { id: 6, licensePlate: 'AP05-T112', vehicleNumber: 'AP05-T112', brand: 'Force Traveller', vehicleType: 'Van', fuelType: 'Diesel', status: 'INACTIVE', fuelLevel: 55, odometer: 38900, driver: '' },
-  { id: 7, licensePlate: 'AP05-T156', vehicleNumber: 'AP05-T156', brand: 'Maruti Eeco', vehicleType: 'Van', fuelType: 'Petrol', status: 'AVAILABLE', fuelLevel: 70, odometer: 15400, driver: '' },
-  { id: 8, licensePlate: 'AP05-T047', vehicleNumber: 'AP05-T047', brand: 'Honda City', vehicleType: 'Car', fuelType: 'Petrol', status: 'AVAILABLE', fuelLevel: 88, odometer: 8900, driver: '' },
-];
-
 const EMPTY = { vehicleNumber: '', brand: '', model: '', year: new Date().getFullYear(), vehicleType: 'Truck', fuelType: 'Diesel', status: 'AVAILABLE', currentOdometer: 0, fuelLevel: 0 };
 
 export default function VehicleOpsPage() {
@@ -82,10 +71,11 @@ export default function VehicleOpsPage() {
     try {
       const res = await api.get('/vehicles', { params: { limit: 100 } });
       const items = res.data?.data?.items ?? (Array.isArray(res.data?.data) ? res.data.data : []);
-      setVehicles(items.length > 0 ? items : fallbackVehicles);
+      setVehicles(items || []);
     } catch (err) {
       console.error(err);
-      setVehicles(fallbackVehicles);
+      setVehicles([]);
+      toast('Error fetching vehicles', 'error');
     } finally {
       setLoading(false);
     }
@@ -151,11 +141,9 @@ export default function VehicleOpsPage() {
         currentOdometer: parseInt(form.currentOdometer) || 0,
         fuelLevel: Math.min(100, Math.max(0, parseInt(form.fuelLevel) || 0)),
       };
-      
+
       if (editRecord) {
-        try {
-          await api.patch(`/vehicles/${editRecord.id || editRecord._id}`, payload);
-        } catch (e) { console.warn('API update failed, mocking locally'); }
+        await api.patch(`/vehicles/${editRecord.id || editRecord._id}`, payload);
         const recordId = editRecord.id || editRecord._id;
         setVehicles(prev => prev.map(v => ((v.id || v._id) === recordId) ? { ...v, ...payload } : v));
         toast('Vehicle updated');
@@ -163,14 +151,11 @@ export default function VehicleOpsPage() {
           addNotification('Vehicle Status Changed', `${payload.vehicleNumber} status updated to ${payload.status}`, 'info');
         }
       } else {
-        try {
-          const res = await api.post('/vehicles', payload);
-          if (res.data?.data) {
-            setVehicles(prev => [res.data.data, ...prev]);
-          }
-        } catch (e) {
-          console.warn('API create failed, mocking locally');
-          setVehicles(prev => [{ ...payload, id: Date.now(), _id: Date.now().toString() }, ...prev]);
+        const res = await api.post('/vehicles', payload);
+        if (res.data?.data) {
+          setVehicles(prev => [res.data.data, ...prev]);
+        } else {
+          setVehicles(prev => [res.data, ...prev]);
         }
         toast('Vehicle added');
         addNotification('Vehicle Added', `New vehicle ${payload.vehicleNumber} added to fleet`, 'success');
@@ -248,12 +233,9 @@ export default function VehicleOpsPage() {
       setAssignDriverDialog({ open: false, vehicle: null });
       setSelectedDriver('');
     } catch (err) {
-      console.warn('API assign failed, mocking locally');
-      setVehicles(prev => prev.map(v => ((v.id || v._id) === vId) ? { ...v, driver: selectedDriver, currentDriver: { name: selectedDriver } } : v));
-      toast('Driver assigned successfully');
-      addNotification('Driver Assigned', `Driver ${selectedDriver} assigned to vehicle ${assignDriverDialog.vehicle.vehicleNumber || assignDriverDialog.vehicle.licensePlate}`, 'success');
-      setAssignDriverDialog({ open: false, vehicle: null });
-      setSelectedDriver('');
+      console.error(err);
+      toast('Error assigning driver', 'error');
+      addNotification('Error', 'Failed to assign driver', 'error');
     }
   };
 
@@ -270,10 +252,7 @@ export default function VehicleOpsPage() {
     { field: 'brand', headerName: 'Brand', flex: 0.9, minWidth: 120, renderCell: ({ value }) => <Typography variant="body2" sx={{ color: 'text.primary' }}>{value || '—'}</Typography> },
     { field: 'vehicleType', headerName: 'Type', flex: 0.8, minWidth: 100, renderCell: ({ value }) => <Typography variant="body2" sx={{ color: 'text.primary' }}>{value}</Typography> },
     { field: 'fuelType', headerName: 'Fuel', flex: 0.75, minWidth: 90, renderCell: ({ value }) => <Typography variant="body2" sx={{ color: 'text.primary' }}>{value}</Typography> },
-    {
-      field: 'fuelLevel', headerName: 'Fuel Level', flex: 1, minWidth: 130,
-      renderCell: ({ value }) => <FuelBar value={value || 0} />,
-    },
+    { field: 'currentOdometer', headerName: 'Odometer', flex: 0.8, minWidth: 100, renderCell: ({ value }) => <Typography variant="body2" sx={{ color: 'text.primary' }}>{value != null ? `${value} km` : '—'}</Typography> },
     {
       field: 'status', headerName: 'Status', flex: 1, minWidth: 140,
       renderCell: ({ value }) => <StatusChip status={value} />,
@@ -301,26 +280,10 @@ export default function VehicleOpsPage() {
       <PageHeader title="Vehicles" subtitle="Manage your fleet vehicles and track their status." icon={DirectionsCarIcon}
         action={
           <Stack direction="row" spacing={1} sx={{ width: 'auto', flexWrap: 'wrap' }}>
-            {hasPermission('compliance_alerts_view') && <Button startIcon={<NotificationsActiveIcon />} onClick={openAlerts} variant="outlined" size="small" sx={{ color: '#ef4444', borderColor: '#ef444450', bgcolor: '#ef444410' }}>Alerts</Button>}
             {hasPermission('vehicle_create') && <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd} size="small" sx={{ borderRadius: 2 }}>Add vehicle</Button>}
           </Stack>
         }
       />
-
-      <Grid container spacing={2} mb={3}>
-        <Grid item xs={6} sm={3}>
-          <StatCard label="Total Vehicles" value={stats.total} sub="In fleet" subColor="#60a5fa" icon={<DirectionsCarIcon />} iconBg="#1976d220" iconColor="#1976d2" loading={loading} />
-        </Grid>
-        <Grid item xs={6} sm={3}>
-          <StatCard label="Available" value={stats.available} sub="Ready" subColor="#4ade80" icon={<CheckCircleOutlineIcon />} iconBg="#10b98120" iconColor="#10b981" loading={loading} />
-        </Grid>
-        <Grid item xs={6} sm={3}>
-          <StatCard label="On Trip" value={stats.onTrip} sub="Active" subColor="#60a5fa" icon={<LocalGasStationIcon />} iconBg="#3b82f620" iconColor="#3b82f6" loading={loading} />
-        </Grid>
-        <Grid item xs={6} sm={3}>
-          <StatCard label="Maintenance" value={stats.maintenance} sub="Needs attention" subColor="#f59e0b" icon={<WarningAmberIcon />} iconBg="#f59e0b20" iconColor="#f59e0b" loading={loading} />
-        </Grid>
-      </Grid>
 
       <Card elevation={0} sx={{ mb: 2, bgcolor: 'background.paper' }}>
         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
@@ -414,9 +377,9 @@ export default function VehicleOpsPage() {
                     {['AVAILABLE', 'ON_TRIP', 'UNDER_MAINTENANCE', 'UNDER_REPAIR', 'INACTIVE'].map(s => <MenuItem key={s} value={s}>{s.replace(/_/g, ' ')}</MenuItem>)}
                   </TextField>
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                {/* <Grid item xs={12} sm={4}>
                   <TextField fullWidth type="number" label="Fuel Level (%)" InputProps={{ inputProps: { min: 0, max: 100 } }} value={form.fuelLevel} onChange={(e) => setForm({ ...form, fuelLevel: e.target.value === '' ? '' : Math.max(0, Math.min(100, Number(e.target.value))) })} />
-                </Grid>
+                </Grid> */}
               </Grid>
             </Box>
             <Box sx={{ flexGrow: 1 }} />

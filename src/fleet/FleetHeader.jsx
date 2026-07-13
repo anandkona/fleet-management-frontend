@@ -100,19 +100,20 @@ function FleetHeader({ handleDrawerToggle }) {
 
 
 
+  const isDark = themeMode === 'dark';
+
   return (
     <Box
       sx={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        p: '20px 24px',
+        p: { xs: '12px 16px', sm: '20px 24px' },
         borderBottom: '1px solid',
         borderColor: 'divider',
-        bgcolor: 'background.default',
+        bgcolor: 'background.paper',
         color: 'text.primary',
-        flexWrap: 'wrap',
-        gap: 2
+        gap: { xs: 1, sm: 2 }
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: '12px', sm: '20px' } }}>
@@ -130,19 +131,20 @@ function FleetHeader({ handleDrawerToggle }) {
         </Typography>
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: '8px', sm: '16px' } }}>
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            backgroundColor: 'background.default',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
             border: '1px solid',
-            borderColor: 'divider',
+            borderColor: 'transparent',
             borderRadius: '8px',
             px: '12px',
-            py: '6px',
-            width: { xs: '130px', sm: '220px' },
-            '&:focus-within': { borderColor: 'primary.main' }
+            py: { xs: '4px', sm: '6px' },
+            width: { xs: '100px', sm: '220px' },
+            transition: 'all 0.2s',
+            '&:focus-within': { borderColor: 'primary.main', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }
           }}
         >
           <SearchIcon sx={{ color: 'text.primary', fontSize: '18px', mr: 1 }} />
@@ -159,13 +161,13 @@ function FleetHeader({ handleDrawerToggle }) {
           />
         </Box>
 
-        <IconButton onClick={toggleThemeMode} sx={{ border: '1px solid', borderColor: 'divider', p: '8px', borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}>
-          {themeMode === 'dark' ? <LightMode sx={{ fontSize: '20px' }} /> : <DarkMode sx={{ fontSize: '20px' }} />}
+        <IconButton onClick={toggleThemeMode} sx={{ border: '1px solid', borderColor: 'divider', p: { xs: '6px', sm: '8px' }, borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}>
+          {themeMode === 'dark' ? <LightMode sx={{ fontSize: { xs: '18px', sm: '20px' } }} /> : <DarkMode sx={{ fontSize: { xs: '18px', sm: '20px' } }} />}
         </IconButton>
 
-        <IconButton onClick={handleNotifClick} sx={{ border: '1px solid', borderColor: 'divider', p: '8px', borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' } }}>
+        <IconButton onClick={handleNotifClick} sx={{ border: '1px solid', borderColor: 'divider', p: { xs: '6px', sm: '8px' }, borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' } }}>
           <Badge badgeContent={unreadCount} sx={{ '& .MuiBadge-badge': { backgroundColor: '#1976d2', color: '#fff' } }}>
-            <NotificationsIcon sx={{ fontSize: '20px' }} />
+            <NotificationsIcon sx={{ fontSize: { xs: '18px', sm: '20px' } }} />
           </Badge>
         </IconButton>
         <Menu
@@ -224,8 +226,8 @@ function FleetHeader({ handleDrawerToggle }) {
           </Box>
         </Menu>
 
-        <IconButton onClick={() => navigate('/settings', { replace: true })} sx={{ border: '1px solid', borderColor: 'divider', p: '8px', borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' } }}>
-          <SettingsIcon sx={{ fontSize: '20px' }} />
+        <IconButton onClick={() => navigate('/settings', { replace: true })} sx={{ border: '1px solid', borderColor: 'divider', p: { xs: '6px', sm: '8px' }, borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }, display: { xs: 'none', sm: 'inline-flex' } }}>
+          <SettingsIcon sx={{ fontSize: { xs: '18px', sm: '20px' } }} />
         </IconButton>
       </Box>
     </Box>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Card, Typography, Table, TableBody, TableCell, TableRow, TableHead,
   Chip, IconButton, CircularProgress, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, Stack, Tooltip, Snackbar, Alert, FormControl, InputLabel, Select, MenuItem, useTheme, useMediaQuery
+  DialogActions, TextField, Stack, Tooltip, Snackbar, Alert, FormControl, InputLabel, Select, MenuItem, useTheme, useMediaQuery, Grid, Divider
 } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -11,20 +11,18 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import DownloadIcon from '@mui/icons-material/Download';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import api, { documentService } from '../../services/api';
 import { ConfirmDialog } from '../components/Common';
 import { useNotification } from '../../contexts/NotificationContext';
 
-const fallbackDocuments = [
-  { id: '1', title: 'Vehicle Registration - MH-12-AB-1234', category: 'Vehicle', documentType: 'RC Book', status: 'VERIFIED', createdAt: '2026-05-10T10:00:00Z' },
-  { id: '2', title: 'Insurance Policy - Q3 2026', category: 'Vehicle', documentType: 'Insurance', status: 'ACTIVE', createdAt: '2026-06-01T10:00:00Z' },
-  { id: '3', title: 'Driver License - Rajesh K', category: 'Driver', documentType: 'License', status: 'PENDING', createdAt: '2026-06-15T10:00:00Z' },
-];
+
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [viewDialog, setViewDialog] = useState({ open: false, doc: null, fileUrl: null, contentType: null, isLoading: false });
   const [file, setFile] = useState(null);
   const [form, setForm] = useState({ title: '', category: 'General', documentType: '', notes: '', issueDate: '', expiryDate: '', tags: '', vehicleId: '', driverId: '', tripId: '', customerId: '', vendorId: '', fuelEntryId: '', linkedEntityType: '', linkedEntityId: '' });
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
@@ -39,14 +37,10 @@ export default function DocumentsPage() {
     try {
       const res = await api.get('/documents', { params: { limit: 100 } });
       const items = res.data?.data?.items ?? (Array.isArray(res.data?.data) ? res.data.data : []);
-      if (items.length > 0) {
-        setDocuments(items);
-      } else {
-        setDocuments(prev => prev.length > 0 ? prev : fallbackDocuments);
-      }
+      setDocuments(items || []);
     } catch (err) {
       console.error(err);
-      setDocuments(prev => prev.length > 0 ? prev : fallbackDocuments);
+      setDocuments([]);
     }
     finally { setLoading(false); }
   }, []);
@@ -78,16 +72,7 @@ export default function DocumentsPage() {
         await documentService.upload(formData);
         fetchData();
       } catch (err) {
-        console.warn('API upload failed, mocking locally');
-        const newDoc = {
-          id: Math.random().toString(36).substring(7),
-          title: form.title || file.name,
-          category: form.category,
-          documentType: form.documentType,
-          status: 'PENDING',
-          createdAt: new Date().toISOString()
-        };
-        setDocuments(prev => [newDoc, ...prev]);
+        throw err;
       }
       toast('Document uploaded successfully');
       addNotification('Document Uploaded', `Successfully uploaded ${form.title || file.name}`, 'success');
@@ -107,9 +92,8 @@ export default function DocumentsPage() {
       fetchData();
       toast('Document deleted successfully');
     } catch (err) {
-      console.warn('API delete failed, mocking locally');
-      setDocuments(prev => prev.filter(d => d.id !== doc.id && d._id !== doc._id));
-      toast('Document deleted successfully');
+      console.error(err);
+      toast('Failed to delete document', 'error');
     }
     addNotification('Document Deleted', `Deleted document ${doc.title || doc.name}`, 'warning');
     setDeleteDialog({ open: false, doc: null });
@@ -123,30 +107,49 @@ export default function DocumentsPage() {
       addNotification(`Document ${action.charAt(0).toUpperCase() + action.slice(1)}d`, `Successfully ${action}d document`, 'success');
       fetchData();
     } catch (err) {
-      console.warn(`API ${action} failed, mocking locally`);
-      setDocuments(prev => prev.map(d => {
-        if (d.id === id || d._id === id) {
-          return { ...d, status: action === 'verify' ? 'VERIFIED' : 'ARCHIVED' };
-        }
-        return d;
-      }));
-      toast(`Document ${action}d successfully`);
-      addNotification(`Document Mocked Action`, `Locally ${action}d document`, 'warning');
+      console.error(err);
+      toast(`Failed to ${action} document`, 'error');
+      addNotification('Error', `Failed to ${action} document`, 'error');
     }
   };
 
   const handleDownload = async (doc) => {
     try {
       const id = doc.id || doc._id;
-      const res = await api.get(`/documents/${id}/download`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const res = await api.get(`/documents/${id}/download`);
+      const url = res.data?.data?.url;
+      if (!url) throw new Error("No download URL returned");
+      
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', doc.filename || doc.title || 'document.pdf');
+      link.setAttribute('target', '_blank');
+      link.setAttribute('download', doc.originalFileName || doc.title || 'document.pdf');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (err) { console.error(err); toast('Download failed', 'error'); }
+  };
+
+  const openView = async (doc) => {
+    setViewDialog({ open: true, doc, fileUrl: null, contentType: null, isLoading: true });
+    try {
+      const id = doc.id || doc._id;
+      const res = await api.get(`/documents/${id}/download`);
+      const url = res.data?.data?.url;
+      if (!url) throw new Error("No download URL returned");
+      
+      const filename = doc.originalFileName || doc.filename || doc.title || '';
+      let contentType = doc.mimeType || 'application/pdf';
+      
+      if (filename.match(/\.(jpg|jpeg)$/i)) contentType = 'image/jpeg';
+      else if (filename.match(/\.png$/i)) contentType = 'image/png';
+      else if (filename.match(/\.pdf$/i)) contentType = 'application/pdf';
+
+      setViewDialog(prev => ({ ...prev, fileUrl: url, contentType, isLoading: false }));
+    } catch (err) {
+      console.error(err);
+      setViewDialog(prev => ({ ...prev, isLoading: false }));
+    }
   };
 
   const statusColor = (s) => {
@@ -197,9 +200,13 @@ export default function DocumentsPage() {
 
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                     <Stack direction="row" spacing={0.5}>
+                      <Tooltip title="View Details">
+                        <IconButton size="small" color="primary" onClick={() => openView(d)}>
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       {(d.verificationStatus || d.status) !== 'VERIFIED' && <Tooltip title="Verify"><IconButton size="small" onClick={() => handleAction(d.id || d._id, 'verify')}><VerifiedUserIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
                       <Tooltip title="Download"><IconButton size="small" onClick={() => handleDownload(d)}><DownloadIcon sx={{ fontSize: 17, color: '#3b82f6' }} /></IconButton></Tooltip>
-                      {(d.documentStatus || d.status) !== 'ARCHIVED' && <Tooltip title="Archive"><IconButton size="small" onClick={() => handleAction(d.id || d._id, 'archive')}><ArchiveIcon sx={{ fontSize: 17, color: '#f59e0b' }} /></IconButton></Tooltip>}
                       <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteDialog({ open: true, doc: d })} sx={{ color: '#ef4444' }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                     </Stack>
                   </TableCell>
@@ -260,6 +267,81 @@ export default function DocumentsPage() {
         onConfirm={confirmDelete}
         onCancel={() => setDeleteDialog({ open: false, doc: null })}
       />
+
+      {/* View Details Dialog */}
+      <Dialog open={viewDialog.open} onClose={() => setViewDialog({ open: false, doc: null })} maxWidth="sm" fullWidth>
+        <DialogTitle>Document Details</DialogTitle>
+        <DialogContent dividers>
+          {viewDialog.doc && (
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Typography variant="caption" color="text.secondary">Title</Typography>
+                <Typography variant="body1" fontWeight="bold">{viewDialog.doc.title || viewDialog.doc.name || '—'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="caption" color="text.secondary">Document Type</Typography>
+                <Typography variant="body1">{viewDialog.doc.documentType || '—'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="caption" color="text.secondary">Category</Typography>
+                <Typography variant="body1">{viewDialog.doc.documentCategory || viewDialog.doc.category || '—'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="caption" color="text.secondary">Status</Typography>
+                <Typography variant="body1">
+                  <Chip label={viewDialog.doc.verificationStatus || viewDialog.doc.documentStatus || viewDialog.doc.status || 'UPLOADED'} size="small" />
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="caption" color="text.secondary">Uploaded</Typography>
+                <Typography variant="body1">{viewDialog.doc.createdAt ? new Date(viewDialog.doc.createdAt).toLocaleString() : '—'}</Typography>
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <Typography variant="caption" color="text.secondary">Issue Date</Typography>
+                <Typography variant="body1">{viewDialog.doc.issueDate ? new Date(viewDialog.doc.issueDate).toLocaleDateString() : '—'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="caption" color="text.secondary">Expiry Date</Typography>
+                <Typography variant="body1">{viewDialog.doc.expiryDate ? new Date(viewDialog.doc.expiryDate).toLocaleDateString() : '—'}</Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="caption" color="text.secondary">Description</Typography>
+                <Typography variant="body2" sx={{ bgcolor: 'background.default', p: 1.5, borderRadius: 1, mt: 0.5, border: '1px solid', borderColor: 'divider' }}>
+                  {viewDialog.doc.description || viewDialog.doc.notes || 'No notes provided.'}
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>Document Preview</Typography>
+                <Box sx={{ width: '100%', height: '400px', bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  {viewDialog.isLoading ? (
+                    <CircularProgress />
+                  ) : viewDialog.fileUrl ? (
+                    viewDialog.contentType?.startsWith('image/') ? (
+                      <img src={viewDialog.fileUrl} alt="Document Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <iframe src={viewDialog.fileUrl} width="100%" height="100%" style={{ border: 'none' }} title="Document Preview" />
+                    )
+                  ) : (
+                    <Typography color="text.secondary">Preview not available</Typography>
+                  )}
+                </Box>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDialog({ open: false, doc: null, fileUrl: null, contentType: null, isLoading: false })}>Close</Button>
+          <Button variant="contained" onClick={() => { handleDownload(viewDialog.doc); setViewDialog({ open: false, doc: null, fileUrl: null, contentType: null, isLoading: false }); }}>Download</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

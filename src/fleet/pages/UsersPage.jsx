@@ -4,7 +4,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   MenuItem, Stack, TableContainer, Avatar, Typography, Chip, useTheme, useMediaQuery, Card, CircularProgress
 } from '@mui/material';
-import { Add, EditOutlined, People, DeleteOutline as DeleteOutlineIcon } from '@mui/icons-material';
+import { Add, Edit, People, Delete as DeleteIcon } from '@mui/icons-material';
 import { userService, roleService } from '../../services/api';
 import { StatusChip, PageHeader, ConfirmDialog } from '../components/Common';
 import { ALL_PERMISSIONS } from './RolesPage';
@@ -63,14 +63,29 @@ export default function UsersPage() {
     setSaving(true); setError('');
     try {
       const payload = { ...form };
+      delete payload.driverId; // Don't send this to user API
       if (!payload.mobile) delete payload.mobile;
+      
+      let userId = selected?.id;
       if (selected) { 
         delete payload.password;
         delete payload.email; // email cannot be updated
         await userService.update(selected.id, payload); 
       } else { 
-        await userService.create(payload); 
+        const res = await userService.create(payload); 
+        userId = res.data?.id || res.data?._id;
       }
+
+      // If a driver is linked, update the driver record with the user ID
+      if (form.driverId && userId) {
+        // We only patch the user_id onto the driver
+        const driverToUpdate = drivers.find(d => d.id === form.driverId || d._id === form.driverId);
+        if (driverToUpdate) {
+          const driverPayload = { ...driverToUpdate, user_id: userId, userId: userId };
+          await api.patch(`/drivers/${form.driverId}`, driverPayload);
+        }
+      }
+
       setDialogOpen(false); fetchData();
       setSnack({ open: true, msg: selected ? 'User updated' : 'User created', severity: 'success' });
     } catch (err) {
@@ -137,8 +152,8 @@ export default function UsersPage() {
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                     {(hasPermission('user_update') || hasPermission('user_delete')) && (
                       <Stack direction="row" spacing={0.5}>
-                        {hasPermission('user_update') && <IconButton size="small" onClick={() => openEdit(u)} sx={{ color: '#60a5fa' }}><EditOutlined fontSize="small" /></IconButton>}
-                        {hasPermission('user_delete') && <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, item: u })} sx={{ color: '#ef4444' }}><DeleteOutlineIcon fontSize="small" /></IconButton>}
+                        {hasPermission('user_update') && <IconButton size="small" onClick={() => openEdit(u)} sx={{ color: '#60a5fa' }}><Edit fontSize="small" /></IconButton>}
+                        {hasPermission('user_delete') && <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, item: u })} sx={{ color: '#ef4444' }}><DeleteIcon fontSize="small" /></IconButton>}
                       </Stack>
                     )}
                   </TableCell>
@@ -150,7 +165,7 @@ export default function UsersPage() {
       </Card>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile} PaperProps={{ sx: { bgcolor: 'background.paper', backgroundImage: 'none' } }}>
-        <DialogTitle sx={{ color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>{selected ? 'EditOutlined User' : 'Add User'}</DialogTitle>
+        <DialogTitle sx={{ color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>{selected ? 'Edit User' : 'Add User'}</DialogTitle>
         <DialogContent>
           {error && <Typography color="error" variant="body2" sx={{ mt: 2 }}>{error}</Typography>}
           <Stack spacing={2.5} mt={1}>
@@ -191,13 +206,13 @@ export default function UsersPage() {
           <Button variant="contained" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
-      
-      <ConfirmDialog 
-        open={deleteConfirm.open} 
-        title="Delete User" 
-        content={`Are you sure you want to delete ${deleteConfirm.item?.name}? This action cannot be undone.`} 
-        onConfirm={handleDelete} 
-        onCancel={() => setDeleteConfirm({ open: false, item: null })} 
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Delete User"
+        content={`Are you sure you want to delete ${deleteConfirm.item?.name}? This action cannot be undone.`}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirm({ open: false, item: null })}
       />
     </Box>
   );

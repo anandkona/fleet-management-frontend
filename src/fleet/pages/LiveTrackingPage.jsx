@@ -11,14 +11,7 @@ import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Tooltip, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 
-const fallbackTracking = [
-  { id: 1, licensePlate: 'AP05-T123', make: 'Tata Prima', status: 'moving', lat: 17.6868, lng: 83.2185, speed: 45, driver: 'Rajesh Kumar', route: 'Vizag Port → APSEZ' },
-  { id: 2, licensePlate: 'AP05-T087', make: 'Ashok Leyland', status: 'moving', lat: 17.7210, lng: 83.3015, speed: 38, driver: 'Suresh Babu', route: 'Gajuwaka → Pendurthi' },
-  { id: 3, licensePlate: 'AP05-T201', make: 'Eicher Pro', status: 'stopped', lat: 17.7500, lng: 83.2800, speed: 0, driver: 'Mohan Reddy', route: 'BHPV Gate → Simhachalam' },
-  { id: 4, licensePlate: 'AP05-T043', make: 'Mahindra Blazo', status: 'idle', lat: 17.7100, lng: 83.2500, speed: 0, driver: 'Venkat Rao', route: 'Dwaraka Nagar → Rushikonda' },
-  { id: 5, licensePlate: 'AP05-T089', make: 'Tata Ace', status: 'moving', lat: 17.7650, lng: 83.3100, speed: 52, driver: 'Prasad Nair', route: 'MVP Colony → Madhurawada' },
-  { id: 6, licensePlate: 'AP05-T112', make: 'Force Traveller', status: 'stopped', lat: 17.6900, lng: 83.2200, speed: 0, driver: '—', route: 'Depot' },
-];
+
 
 const getStatusColor = (s) => {
   if (s === 'active' || s === 'AVAILABLE' || s === 'ON_TRIP') return '#4ade80';
@@ -70,10 +63,10 @@ export default function LiveTrackingPage() {
     try {
       const res = await api.get('/vehicles', { params: { limit: 100 } });
       const items = res.data?.data?.items ?? (Array.isArray(res.data?.data) ? res.data.data : []);
-      setVehicles(items.length > 0 ? items : fallbackTracking);
+      setVehicles(items || []);
     } catch (err) {
       console.error(err);
-      setVehicles(fallbackTracking);
+      setVehicles([]);
     } finally {
       setLoading(false);
     }

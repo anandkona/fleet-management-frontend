@@ -5,20 +5,13 @@ import {
   DialogTitle, DialogContent, DialogActions, Grid, MenuItem, Stack,
   Typography, Tooltip, InputAdornment, Chip, Skeleton, useTheme, useMediaQuery, Autocomplete, Alert, Snackbar
 } from '@mui/material';
-import { Add, EditOutlined, Search, Close, PlayArrow, Stop, Refresh, VisibilityOutlined, Schedule, CancelOutlined } from '@mui/icons-material';
+import { Add, Edit, Search, Close, PlayArrow, Stop, Refresh, Visibility, Schedule, Cancel, Route, LocationOn, Flag, Person, DirectionsCar, Straighten, Notes, Info, Delete } from '@mui/icons-material';
 import { tripService, vehicleService, driverService } from '../../services/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import { StatusChip, ConfirmDialog, PageHeader } from '../components/Common';
 
 const TRIP_TYPES = ['TRANSFER', 'DELIVERY', 'PICKUP', 'SERVICE', 'INTERNAL'];
 const STATUSES = ['DRAFT', 'SCHEDULED', 'STARTED', 'COMPLETED', 'CANCELLED'];
-
-const fallbackTrips = [
-  { id: 1, tripNumber: 'TRP-001', tripType: 'DELIVERY', originName: 'Vizag Port', destinationName: 'APSEZ', vehicleId: 'AP05-T123', driverId: 'Rajesh Kumar', plannedStartAt: '2026-06-22T08:00', status: 'COMPLETED', distanceKm: 42 },
-  { id: 2, tripNumber: 'TRP-002', tripType: 'TRANSFER', originName: 'Gajuwaka', destinationName: 'Pendurthi', vehicleId: 'AP05-T087', driverId: 'Suresh Babu', plannedStartAt: '2026-06-22T10:00', status: 'STARTED', distanceKm: 28 },
-  { id: 3, tripNumber: 'TRP-003', tripType: 'PICKUP', originName: 'BHPV Gate', destinationName: 'Simhachalam', vehicleId: 'AP05-T201', driverId: 'Mohan Reddy', plannedStartAt: '2026-06-23T14:00', status: 'SCHEDULED', distanceKm: 18 },
-  { id: 4, tripNumber: 'TRP-004', tripType: 'SERVICE', originName: 'Dwaraka Nagar', destinationName: 'Rushikonda', vehicleId: 'AP05-T043', driverId: 'Venkat Rao', plannedStartAt: '2026-06-24T09:00', status: 'DRAFT', distanceKm: 22 },
-];
 
 const EMPTY = { tripType: 'TRANSFER', originName: '', destinationName: '', vehicleId: '', driverId: '', plannedStartAt: '', plannedEndAt: '', purpose: '', notes: '', distanceKm: '' };
 
@@ -51,6 +44,7 @@ export default function TripLogsPage() {
   const [lifecycleForm, setLifecycleForm] = useState({ notes: '', odometer: '', distanceKm: '' });
 
   const [historyDialog, setHistoryDialog] = useState(false);
+  const [viewTrip, setViewTrip] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const theme = useTheme();
@@ -65,14 +59,15 @@ export default function TripLogsPage() {
         driverService.getAll({ limit: 100 }),
       ]);
       const tItems = tRes.status === 'fulfilled' ? (tRes.value.data?.data?.items ?? (Array.isArray(tRes.value.data?.data) ? tRes.value.data.data : [])) : [];
-      setTrips(tItems.length > 0 ? tItems : fallbackTrips);
+      setTrips(tItems || []);
       const vItems = vRes.status === 'fulfilled' ? (vRes.value.data?.data?.items ?? (Array.isArray(vRes.value.data?.data) ? vRes.value.data.data : [])) : [];
       setVehicles(vItems);
       const dItems = dRes.status === 'fulfilled' ? (dRes.value.data?.data?.items ?? (Array.isArray(dRes.value.data?.data) ? dRes.value.data.data : [])) : [];
       setDrivers(dItems);
     } catch (err) {
       console.error(err);
-      setTrips(fallbackTrips);
+      setTrips([]);
+      setSnack({ open: true, msg: 'Error fetching trips', severity: 'error' });
     } finally { setLoading(false); }
   }, []);
 
@@ -122,7 +117,7 @@ export default function TripLogsPage() {
     if (!form.originName || !form.destinationName) { toast('Origin and Destination are required', 'warning'); return; }
     try {
       const payload = { ...form };
-      if (payload.distanceKm) payload.distanceKm = Number(payload.distanceKm);
+      payload.distanceKm = payload.distanceKm ? Number(payload.distanceKm) : 0;
       if (!payload.plannedStartAt) delete payload.plannedStartAt;
       else payload.plannedStartAt = new Date(payload.plannedStartAt).toISOString();
       if (!payload.plannedEndAt) delete payload.plannedEndAt;
@@ -146,16 +141,42 @@ export default function TripLogsPage() {
   const handleLifecycle = async () => {
     try {
       const id = lifecycleTarget.id;
-      if (lifecycleAction === 'schedule') { await tripService.schedule(id, lifecycleForm); toast('Trip scheduled'); addNotification('Success', 'Trip scheduled successfully', 'success'); if (refreshNotifications) refreshNotifications(); }
-      else if (lifecycleAction === 'start') { await tripService.start(id, { ...lifecycleForm, startOdometer: lifecycleForm.odometer ? Number(lifecycleForm.odometer) : undefined }); toast('Trip started'); addNotification('Success', 'Trip started successfully', 'success'); if (refreshNotifications) refreshNotifications(); }
-      else if (lifecycleAction === 'complete') { await tripService.complete(id, { ...lifecycleForm, endOdometer: lifecycleForm.odometer ? Number(lifecycleForm.odometer) : undefined, distanceKm: lifecycleForm.distanceKm ? Number(lifecycleForm.distanceKm) : undefined }); toast('Trip completed'); addNotification('Success', 'Trip completed successfully', 'success'); if (refreshNotifications) refreshNotifications(); }
-      else if (lifecycleAction === 'cancel') { await tripService.cancel(id, { notes: lifecycleForm.notes }); toast('Trip cancelled'); addNotification('Success', 'Trip cancelled successfully', 'warning'); if (refreshNotifications) refreshNotifications(); }
-      setLifecycleDialog(false); fetchData();
-    } catch (err) { console.error(err); toast(`Error: ${err.message}`, 'error'); addNotification('Error', `Failed to ${lifecycleAction} trip`, 'error'); }
+
+      const payload = { notes: lifecycleForm.notes || undefined };
+
+      if (lifecycleAction === 'schedule') {
+        await tripService.schedule(id, payload);
+        toast('Trip scheduled');
+      }
+      else if (lifecycleAction === 'start') {
+        payload.startOdometer = lifecycleForm.odometer ? Number(lifecycleForm.odometer) : 0;
+        await tripService.start(id, payload);
+        toast('Trip started');
+      }
+      else if (lifecycleAction === 'complete') {
+        payload.endOdometer = lifecycleForm.odometer ? Number(lifecycleForm.odometer) : 0;
+        payload.distanceKm = lifecycleForm.distanceKm ? Number(lifecycleForm.distanceKm) : 0;
+        await tripService.complete(id, payload);
+        toast('Trip completed');
+      }
+      else if (lifecycleAction === 'cancel') {
+        await tripService.cancel(id, payload);
+        toast('Trip cancelled');
+      }
+
+      addNotification('Success', `Trip ${lifecycleAction} successfully`, 'success');
+      if (refreshNotifications) refreshNotifications();
+      setLifecycleDialog(false);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      toast(`Error: ${err.response?.data?.message || err.message}`, 'error');
+      addNotification('Error', `Failed to ${lifecycleAction} trip`, 'error');
+    }
   };
 
   const openHistory = async (t) => {
-    setHistoryDialog(true); setHistoryLoading(true);
+    setViewTrip(t); setHistoryDialog(true); setHistoryLoading(true);
     try { const res = await tripService.history(t.id); setHistoryData(res.data?.data ?? res.data ?? []); }
     catch { setHistoryData([]); }
     setHistoryLoading(false);
@@ -170,7 +191,6 @@ export default function TripLogsPage() {
       <PageHeader title="Trips" subtitle={`${filtered.length} trips recorded`} icon={Schedule}
         action={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            <Button startIcon={<Refresh />} onClick={fetchData} variant="outlined" size="small" sx={{ color: 'text.primary', borderColor: '#3a3a42', flex: { xs: 1, sm: 'none' } }}>Refresh</Button>
             <Button startIcon={<Add />} onClick={openAdd} variant="contained" sx={{ flex: { xs: 1, sm: 'none' } }}>New Trip</Button>
           </Stack>
         }
@@ -206,9 +226,10 @@ export default function TripLogsPage() {
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                {['S.NO', 'Trip ID', 'Type', 'Route', 'Driver', 'Vehicle', 'Planned Start', 'Actual Start', 'Distance', 'Status', 'Actions'].map((h) => (
-                  <TableCell key={h} sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2', borderBottom: '1px solid', borderColor: 'divider' }}>{h}</TableCell>
-                ))}
+                {['S.NO', 'Trip ID', 'Type', 'Route', 'Driver', 'Vehicle', 'Planned Start',
+                  'Distance', 'Status', 'Actions'].map((h) => (
+                    <TableCell key={h} sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2', borderBottom: '1px solid', borderColor: 'divider' }}>{h}</TableCell>
+                  ))}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -228,16 +249,16 @@ export default function TripLogsPage() {
                   <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{getDriverName(t) || '—'}</TableCell>
                   <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{getVehicleName(t) || '—'}</TableCell>
                   <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{fmt(t.plannedStartAt)}</TableCell>
-                  <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{fmt(t.startedAt || t.actualStartAt)}</TableCell>
+
                   <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{t.distanceKm ? `${t.distanceKm} km` : '—'}</TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}><StatusChip status={t.status} /></TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                     <Stack direction="row" spacing={0.5}>
                       {t.status === 'SCHEDULED' && <Tooltip title="Start Trip"><IconButton size="small" color="success" onClick={() => openLifecycle(t, 'start')}><PlayArrow fontSize="small" /></IconButton></Tooltip>}
                       {t.status === 'STARTED' && <Tooltip title="Complete Trip"><IconButton size="small" color="warning" onClick={() => openLifecycle(t, 'complete')}><Stop fontSize="small" /></IconButton></Tooltip>}
-                      {!['COMPLETED', 'CANCELLED'].includes(t.status) && <Tooltip title="EditOutlined"><IconButton size="small" onClick={() => openEdit(t)}><EditOutlined sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>}
-                      <Tooltip title="View"><IconButton size="small" onClick={() => openHistory(t)}><VisibilityOutlined sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>
-                      {['DRAFT', 'SCHEDULED'].includes(t.status) && <Tooltip title="Cancel"><IconButton size="small" onClick={() => openLifecycle(t, 'cancel')}><CancelOutlined sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton></Tooltip>}
+                      {!['COMPLETED', 'CANCELLED'].includes(t.status) && <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(t)}><Edit sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>}
+                      <Tooltip title="View"><IconButton size="small" onClick={() => openHistory(t)}><Visibility sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>
+                      {!['COMPLETED', 'CANCELLED'].includes(t.status) && <Tooltip title="Cancel Trip"><IconButton size="small" onClick={() => openLifecycle(t, 'cancel')}><Cancel sx={{ fontSize: 17, color: '#ef0202ff' }} /></IconButton></Tooltip>}
                     </Stack>
                   </TableCell>
                 </TableRow>
@@ -251,7 +272,7 @@ export default function TripLogsPage() {
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth fullScreen={isMobile} PaperProps={{ sx: { bgcolor: 'background.paper', backgroundImage: 'none' } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="h6" component="div" sx={{ fontWeight: 600, color: 'text.primary' }}>{editing ? 'EditOutlined Trip' : 'New Trip'}</Typography>
+          <Typography variant="h6" component="div" sx={{ fontWeight: 600, color: 'text.primary' }}>{editing ? 'Edit Trip' : 'New Trip'}</Typography>
           <IconButton onClick={() => setDialogOpen(false)} size="small"><Close sx={{ color: 'text.primary' }} /></IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ borderColor: 'divider' }}>
@@ -293,17 +314,119 @@ export default function TripLogsPage() {
       </Dialog>
 
       <Dialog open={historyDialog} onClose={() => setHistoryDialog(false)} maxWidth="md" fullWidth fullScreen={isMobile} PaperProps={{ sx: { bgcolor: 'background.paper', backgroundImage: 'none' } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'text.primary' }}>
-          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>Trip History</Typography>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'text.primary', pb: 2 }}>
+          <span>Trip Details: {viewTrip?.tripNumber || `#${String(viewTrip?.id || '').slice(-6)}`}</span>
           <IconButton onClick={() => setHistoryDialog(false)} size="small"><Close sx={{ color: 'text.primary' }} /></IconButton>
         </DialogTitle>
-        <DialogContent dividers sx={{ borderColor: 'divider' }}>
-          {historyLoading ? <Stack spacing={1}>{Array(3).fill(0).map((_, i) => <Skeleton key={i} height={40} sx={{ bgcolor: 'divider' }} />)}</Stack>
-            : historyData.length === 0 ? <Typography sx={{ color: 'text.primary', py: 4, textAlign: 'center' }}>No history entries</Typography>
-              : <Table stickyHeader size="small">
-                <TableHead><TableRow>{['Action', 'From Status', 'To Status', 'Remarks', 'Date'].map(h => <TableCell key={h} sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.7rem', textTransform: 'uppercase' }}>{h}</TableCell>)}</TableRow></TableHead>
-                <TableBody>{historyData.map((h, i) => <TableRow key={i}><TableCell><Chip label={h.action} size="small" /></TableCell><TableCell sx={{ color: 'text.primary' }}>{h.fromStatus || '—'}</TableCell><TableCell>{h.toStatus ? <StatusChip status={h.toStatus} /> : '—'}</TableCell><TableCell sx={{ color: 'text.primary' }}>{h.remarks || '—'}</TableCell><TableCell sx={{ color: 'text.primary' }}>{fmt(h.createdAt)}</TableCell></TableRow>)}</TableBody>
-              </Table>}
+        <DialogContent sx={{ bgcolor: 'background.paper', pt: 3 }}>
+          {viewTrip && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
+              <Card sx={{ p: 2, boxShadow: 3, borderRadius: 2 }}>
+                <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', mb: 2 }}>Trip Information</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}><Route sx={{ color: '#6b7280', fontSize: 20 }} /></Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Trip Type</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{viewTrip.tripType || '—'}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}><Info sx={{ color: '#6b7280', fontSize: 20 }} /></Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Status</Typography>
+                        <Box sx={{ mt: 0.5 }}><StatusChip status={viewTrip.status} /></Box>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}><LocationOn sx={{ color: '#6b7280', fontSize: 20 }} /></Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Origin</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{viewTrip.originName || '—'}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}><Flag sx={{ color: '#6b7280', fontSize: 20 }} /></Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Destination</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{viewTrip.destinationName || '—'}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}><Person sx={{ color: '#6b7280', fontSize: 20 }} /></Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Driver</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{getDriverName(viewTrip) || '—'}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}><DirectionsCar sx={{ color: '#6b7280', fontSize: 20 }} /></Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Vehicle</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{getVehicleName(viewTrip) || '—'}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}><Schedule sx={{ color: '#6b7280', fontSize: 20 }} /></Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Planned Start</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{fmt(viewTrip.plannedStartAt)}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}><Straighten sx={{ color: '#6b7280', fontSize: 20 }} /></Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Distance</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{viewTrip.distanceKm ? `${viewTrip.distanceKm} km` : '—'}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}><Notes sx={{ color: '#6b7280', fontSize: 20 }} /></Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Notes</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{viewTrip.notes || '—'}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Card>
+            </Box>
+          )}
+
+          <Card sx={{ p: 2, boxShadow: 3, borderRadius: 2 }}>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', mb: 2 }}>Status History</Typography>
+            {historyLoading ? <Stack spacing={1}>{Array(3).fill(0).map((_, i) => <Skeleton key={i} height={40} sx={{ bgcolor: 'divider' }} />)}</Stack>
+              : historyData.length === 0 ? <Typography sx={{ color: 'text.primary', py: 4, textAlign: 'center' }}>No history entries</Typography>
+                : <Table stickyHeader size="small">
+                  <TableHead><TableRow>{['Action', 'From Status', 'To Status', 'Remarks', 'Date'].map(h => <TableCell key={h} sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.7rem', textTransform: 'uppercase' }}>{h}</TableCell>)}</TableRow></TableHead>
+                  <TableBody>{historyData.map((h, i) => <TableRow key={i}><TableCell><Chip label={h.action} size="small" /></TableCell><TableCell sx={{ color: 'text.primary' }}>{h.fromStatus || '—'}</TableCell><TableCell>{h.toStatus ? <StatusChip status={h.toStatus} /> : '—'}</TableCell><TableCell sx={{ color: 'text.primary' }}>{h.remarks || '—'}</TableCell><TableCell sx={{ color: 'text.primary' }}>{fmt(h.createdAt)}</TableCell></TableRow>)}</TableBody>
+                </Table>}
+          </Card>
         </DialogContent>
       </Dialog>
 

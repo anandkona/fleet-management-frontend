@@ -2,17 +2,22 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Card, Typography, Table, TableBody, TableCell, TableRow, TableHead,
   Chip, IconButton, CircularProgress, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, useTheme, useMediaQuery
+  DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, useTheme, useMediaQuery, Grid, Avatar
 } from '@mui/material';
 import { ConfirmDialog } from '../components/Common';
 import BuildIcon from '@mui/icons-material/Build';
 import AddIcon from '@mui/icons-material/Add';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import EventIcon from '@mui/icons-material/Event';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { format, parseISO, isValid } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
@@ -226,7 +231,7 @@ export default function MaintenancePage() {
       const isoDate = form.date ? new Date(form.date).toISOString() : new Date().toISOString();
       const calculatedCost = form.lineItems.reduce((sum, item) => sum + (item.total || 0), 0);
       const derivedCategory = form.lineItems.length > 0 ? form.lineItems[0].serviceType : 'General Service';
-      
+
       let payload;
       if (editItem) {
         payload = {
@@ -331,13 +336,7 @@ export default function MaintenancePage() {
     } catch (err) {
       console.error(err);
       const errMsg = err.response?.data?.message || err.message;
-      if (errMsg?.includes('Cannot transition')) {
-        const delId = item.id || item._id;
-        setTasks(prev => prev.filter(t => String(t.id || t._id) !== String(delId)));
-        toast('Maintenance record removed');
-      } else {
-        toast(errMsg || 'Failed to delete maintenance record', 'error');
-      }
+      toast(errMsg || 'Failed to delete maintenance record', 'error');
     } finally {
       setDeleteConfirm({ open: false, item: null });
     }
@@ -375,8 +374,8 @@ export default function MaintenancePage() {
     if (!record || typeof record !== 'object') return [];
     const rawItems = Array.isArray(record.lineItems) && record.lineItems.length > 0 ? record.lineItems
       : Array.isArray(record.services) && record.services.length > 0 ? record.services
-      : Array.isArray(record.items) && record.items.length > 0 ? record.items
-      : [];
+        : Array.isArray(record.items) && record.items.length > 0 ? record.items
+          : [];
     return rawItems.map(normalizeServiceItem);
   };
   const getServiceSummary = (lineItems) => {
@@ -433,17 +432,21 @@ export default function MaintenancePage() {
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}><Chip label={(t.status || 'Pending').toUpperCase()} size="small" color={statusColor(t.status)} sx={{ fontSize: '0.65rem', fontWeight: 700 }} /></TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                     <Stack direction="row" spacing={1}>
-                      <Tooltip title="Preview"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => setServicesDialogItem(t)}><VisibilityOutlinedIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>
-                      {(!t.status || t.status === 'DRAFT') && <Tooltip title="EditOutlined"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => { setEditItem(t); setForm({ vehicleId: t.vehicleId || t.vehicle?._id || t.vehicle?.id || '', vehiclePlate: t.vehiclePlate || t.vehicle?.vehicleNumber || t.vehicle?.licensePlate || '', vendor: t.vendor || '', date: t.date ? new Date(t.date).toISOString().split('T')[0] : (t.requestDate ? new Date(t.requestDate).toISOString().split('T')[0] : ''), priority: t.priority || 'LOW', category: t.category || '', description: t.description || '', notes: t.notes || '', lineItems: getRecordLineItems(t).map(item => ({
-                          id: item.id || Date.now(),
-                          serviceType: getServiceLabel(item),
-                          amount: item.amount ?? item.price ?? item.cost ?? 0,
-                          tax: item.tax ?? 0,
-                          total: item.total ?? (Number(item.amount ?? item.price ?? item.cost ?? 0) + ((Number(item.amount ?? item.price ?? item.cost ?? 0) * Number(item.tax ?? 0)) / 100)),
-                        })), images: t.images || [] }); setOpenDialog(true); }}><EditOutlinedIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>}
-                      {t.status === 'SUBMITTED' && <Tooltip title="Approve"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => handleWorkflow(t.id || t._id, 'approve')}><CheckCircleOutlineIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
+                      <Tooltip title="Preview"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => setServicesDialogItem(t)}><VisibilityIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>
+                      {(!t.status || t.status === 'DRAFT') && <Tooltip title="Edit"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => {
+                        setEditItem(t); setForm({
+                          vehicleId: t.vehicleId || t.vehicle?._id || t.vehicle?.id || '', vehiclePlate: t.vehiclePlate || t.vehicle?.vehicleNumber || t.vehicle?.licensePlate || '', vendor: t.vendor || '', date: t.date ? new Date(t.date).toISOString().split('T')[0] : (t.requestDate ? new Date(t.requestDate).toISOString().split('T')[0] : ''), priority: t.priority || 'LOW', category: t.category || '', description: t.description || '', notes: t.notes || '', lineItems: getRecordLineItems(t).map(item => ({
+                            id: item.id || Date.now(),
+                            serviceType: getServiceLabel(item),
+                            amount: item.amount ?? item.price ?? item.cost ?? 0,
+                            tax: item.tax ?? 0,
+                            total: item.total ?? (Number(item.amount ?? item.price ?? item.cost ?? 0) + ((Number(item.amount ?? item.price ?? item.cost ?? 0) * Number(item.tax ?? 0)) / 100)),
+                          })), images: t.images || []
+                        }); setOpenDialog(true);
+                      }}><EditIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>}
+                      {t.status === 'SUBMITTED' && <Tooltip title="Approve"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => handleWorkflow(t.id || t._id, 'approve')}><CheckCircleIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
 
-                      {(!t.status || t.status === 'DRAFT' || t.status === 'SUBMITTED') && <Tooltip title="Cancel"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => handleWorkflow(t.id || t._id, 'cancel')}><CancelOutlinedIcon sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton></Tooltip>}
+                      {(!t.status || t.status === 'DRAFT' || t.status === 'SUBMITTED') && <Tooltip title="Cancel"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => handleWorkflow(t.id || t._id, 'cancel')}><CancelIcon sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton></Tooltip>}
                     </Stack>
                   </TableCell>
                 </TableRow>
@@ -455,7 +458,7 @@ export default function MaintenancePage() {
       </Card>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
-        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>{editItem ? 'EditOutlined Maintenance' : 'Schedule Maintenance'}</DialogTitle>
+        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>{editItem ? 'Edit Maintenance' : 'Schedule Maintenance'}</DialogTitle>
         <DialogContent sx={{ bgcolor: 'background.paper', pt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
@@ -554,68 +557,132 @@ export default function MaintenancePage() {
 
       <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: 2 }}>{snack.msg}</Alert>
-      </Snackbar>
-
-
-      <Dialog open={!!servicesDialogItem} onClose={() => setServicesDialogItem(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
-          Maintenance Preview
+      </Snackbar>      {/* ── View Maintenance Profile (Driver Dialog Style) ── */}
+      <Dialog 
+        open={!!servicesDialogItem} 
+        onClose={() => setServicesDialogItem(null)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: 1, borderColor: 'divider' }}>
+          Maintenance Profile
         </DialogTitle>
-        <DialogContent sx={{ bgcolor: 'background.paper', pt: 3 }}>
+        <DialogContent sx={{ bgcolor: 'background.paper', p: 3, display: 'flex', flexDirection: 'column', minHeight: 400 }}>
           {servicesDialogItem && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 2, mb: 2 }}>
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+                <Avatar sx={{ width: 64, height: 64, bgcolor: '#1976d2', fontSize: '1.5rem' }}>
+                  {(servicesDialogItem.vehiclePlate || servicesDialogItem.vehicle?.vehicleNumber || servicesDialogItem.vehicle?.licensePlate || servicesDialogItem.vehicleId || 'V')[0]}
+                </Avatar>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Vehicle</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.primary' }}>{servicesDialogItem.vehiclePlate || servicesDialogItem.vehicle?.vehicleNumber || servicesDialogItem.vehicle?.licensePlate || servicesDialogItem.vehicleId || '—'}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Vendor</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.primary' }}>{servicesDialogItem.vendor || '—'}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Scheduled Date</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.primary' }}>{servicesDialogItem.scheduledDate ? new Date(servicesDialogItem.scheduledDate).toLocaleDateString() : (servicesDialogItem.requestDate ? new Date(servicesDialogItem.requestDate).toLocaleDateString() : (servicesDialogItem.date ? new Date(servicesDialogItem.date).toLocaleDateString() : '—'))}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Status</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.primary' }}>{(servicesDialogItem.status || 'Pending').toUpperCase()}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Total Cost</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.primary' }}>{formatAmount(servicesDialogItem.actualCost ?? servicesDialogItem.estimatedCost ?? servicesDialogItem.totalCost ?? servicesDialogItem.cost ?? getRecordLineItems(servicesDialogItem).reduce((sum, item) => sum + Number(item.total || 0), 0))}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Notes</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap' }}>{servicesDialogItem.notes || servicesDialogItem.description || '—'}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>{servicesDialogItem.vehiclePlate || servicesDialogItem.vehicle?.vehicleNumber || servicesDialogItem.vehicle?.licensePlate || servicesDialogItem.vehicleId || '—'}</Typography>
+                  <Chip
+                    label={(servicesDialogItem.status || 'Pending').toUpperCase()}
+                    size="small"
+                    color={statusColor(servicesDialogItem.status)}
+                    sx={{ mt: 0.5, fontSize: '0.7rem', fontWeight: 700 }}
+                  />
                 </Box>
               </Box>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Service Items</Typography>
-              <Table stickyHeader size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontSize: '0.75rem', py: 0.5 }}>Service</TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem', py: 0.5 }}>Amount</TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem', py: 0.5 }}>Tax (%)</TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem', py: 0.5 }}>Total</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {getRecordLineItems(servicesDialogItem).map((item, index) => (
-                    <TableRow key={item.id || `${getServiceLabel(item)}-${index}`}>
-                      <TableCell sx={{ py: 0.5, fontSize: '0.8rem' }}>{getServiceLabel(item)}</TableCell>
-                      <TableCell sx={{ py: 0.5, fontSize: '0.8rem' }}>{formatAmount(item.amount)}</TableCell>
-                      <TableCell sx={{ py: 0.5, fontSize: '0.8rem' }}>{item.tax ?? 0}</TableCell>
-                      <TableCell sx={{ py: 0.5, fontSize: '0.8rem' }}>{formatAmount(item.total)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Card sx={{ p: 2, boxShadow: 3, borderRadius: 2 }}>
+                  <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', mb: 2 }}>Maintenance Details</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}>
+                          <DirectionsCarIcon sx={{ color: '#6b7280', fontSize: 20 }} />
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Vehicle</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{servicesDialogItem.vehiclePlate || servicesDialogItem.vehicle?.vehicleNumber || servicesDialogItem.vehicle?.licensePlate || servicesDialogItem.vehicleId || '—'}</Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}>
+                          <StorefrontIcon sx={{ color: '#6b7280', fontSize: 20 }} />
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Vendor</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{servicesDialogItem.vendor || '—'}</Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}>
+                          <EventIcon sx={{ color: '#6b7280', fontSize: 20 }} />
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Scheduled Date</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{servicesDialogItem.scheduledDate ? new Date(servicesDialogItem.scheduledDate).toLocaleDateString() : (servicesDialogItem.requestDate ? new Date(servicesDialogItem.requestDate).toLocaleDateString() : (servicesDialogItem.date ? new Date(servicesDialogItem.date).toLocaleDateString() : '—'))}</Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}>
+                          <AttachMoneyIcon sx={{ color: '#059669', fontSize: 20 }} />
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Total Cost</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 700, color: '#059669' }}>{formatAmount(servicesDialogItem.actualCost ?? servicesDialogItem.estimatedCost ?? servicesDialogItem.totalCost ?? servicesDialogItem.cost ?? getRecordLineItems(servicesDialogItem).reduce((sum, item) => sum + Number(item.total || 0), 0))}</Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <Box sx={{ display: 'flex', gap: 2 }}>
+                        <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex', height: 'fit-content' }}>
+                          <DescriptionIcon sx={{ color: '#6b7280', fontSize: 20 }} />
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2, mb: 0.5 }}>Notes</Typography>
+                          <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 400, whiteSpace: 'pre-wrap', bgcolor: '#f9fafb', p: 1.5, borderRadius: 1, border: '1px solid #e5e7eb', width: '100%', minWidth: '300px' }}>{servicesDialogItem.notes || servicesDialogItem.description || 'No notes added.'}</Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Card>
+
+                <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2 }}>
+                  <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', mb: 2 }}>Service Items</Typography>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
+                        <TableCell sx={{ fontSize: '0.8rem', py: 1.5, color: 'text.secondary', fontWeight: 600, borderBottom: '1px solid', borderColor: 'divider' }}>Service</TableCell>
+                        <TableCell sx={{ fontSize: '0.8rem', py: 1.5, color: 'text.secondary', fontWeight: 600, borderBottom: '1px solid', borderColor: 'divider' }}>Amount</TableCell>
+                        <TableCell sx={{ fontSize: '0.8rem', py: 1.5, color: 'text.secondary', fontWeight: 600, borderBottom: '1px solid', borderColor: 'divider' }}>Tax (%)</TableCell>
+                        <TableCell sx={{ fontSize: '0.8rem', py: 1.5, color: 'text.secondary', fontWeight: 600, borderBottom: '1px solid', borderColor: 'divider' }}>Total</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {getRecordLineItems(servicesDialogItem).map((item, index) => (
+                        <TableRow key={item.id || `${getServiceLabel(item)}-${index}`} hover>
+                          <TableCell sx={{ py: 1.5, fontSize: '0.9rem', color: 'text.primary', fontWeight: 400 }}>{getServiceLabel(item)}</TableCell>
+                          <TableCell sx={{ py: 1.5, fontSize: '0.9rem', color: 'text.secondary' }}>{formatAmount(item.amount)}</TableCell>
+                          <TableCell sx={{ py: 1.5, fontSize: '0.9rem', color: 'text.secondary' }}>{item.tax ?? 0}</TableCell>
+                          <TableCell sx={{ py: 1.5, fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>{formatAmount(item.total)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {getRecordLineItems(servicesDialogItem).length === 0 && (
+                        <TableRow><TableCell colSpan={4} align="center" sx={{ py: 3, color: 'text.secondary' }}>No service items recorded</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </Card>
+              </Box>
+            </>
           )}
         </DialogContent>
-        <DialogActions sx={{ bgcolor: 'background.paper', p: 2 }}>
-          <Button onClick={() => setServicesDialogItem(null)} variant="outlined">Close</Button>
+        <DialogActions sx={{ bgcolor: 'background.paper', p: 2, borderTop: 1, borderColor: 'divider' }}>
+          <Button onClick={() => setServicesDialogItem(null)} sx={{ color: 'text.primary' }}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

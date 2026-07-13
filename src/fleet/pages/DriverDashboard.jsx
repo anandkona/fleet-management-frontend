@@ -12,17 +12,7 @@ import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { alpha } from '@mui/material/styles';
 
-// --- Fallback Data ---
-const fallbackVehicles = [
-  { id: 1, licensePlate: 'AP05-T123', vehicleType: 'Truck', status: 'AVAILABLE' },
-  { id: 2, licensePlate: 'AP05-T087', vehicleType: 'Truck', status: 'ON_TRIP' },
-  { id: 3, licensePlate: 'AP05-T201', vehicleType: 'Truck', status: 'AVAILABLE' },
-];
-const fallbackTrips = [
-  { id: 1, tripNumber: 'AP05-T123', origin: 'Vizag Port', destination: 'APSEZ', distance: '42 km', status: 'Active', statusColor: '#4CAF50' },
-  { id: 2, tripNumber: 'AP05-T087', origin: 'Gajuwaka', destination: 'Pendurthi', distance: '28 km', status: 'Idle 12m', statusColor: '#FF9800' },
-  { id: 3, tripNumber: 'AP05-T201', origin: 'BHPV Gate', destination: 'Simhachalam', distance: '18 km', status: 'Done', statusColor: '#9E9E9E' },
-];
+
 
 function extractItems(res) {
   const raw = res.data;
@@ -40,6 +30,7 @@ export default function DriverDashboard() {
   const [loading, setLoading] = useState(true);
   const [vehicles, setVehicles] = useState([]);
   const [trips, setTrips] = useState([]);
+  const [expenses, setExpenses] = useState([]);
 
   const { user } = useAuth();
   const roleName = user?.role?.name || user?.role?.key || user?.role || 'User';
@@ -47,28 +38,33 @@ export default function DriverDashboard() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const fetchPromises = [];
-      fetchPromises.push(canViewVehicles ? api.get('/vehicles', { params: { limit: 100 } }) : Promise.resolve({ data: [] }));
-      fetchPromises.push(canViewTrips ? api.get('/trips', { params: { limit: 100 } }) : Promise.resolve({ data: [] }));
+      const fetchPromises = [
+        canViewVehicles ? api.get('/vehicles', { params: { limit: 100 } }) : Promise.resolve({ data: [] }),
+        canViewTrips ? api.get('/trips', { params: { limit: 100 } }) : Promise.resolve({ data: [] }),
+        api.get('/expenses', { params: { limit: 100 } }).catch(() => ({ data: [] }))
+      ];
 
-      const [vRes, tRes] = await Promise.allSettled(fetchPromises);
+      const [vRes, tRes, eRes] = await Promise.allSettled(fetchPromises);
 
       const gotVehicles = vRes.status === 'fulfilled' && canViewVehicles ? extractItems(vRes.value) : [];
-      
       const gotTrips = tRes.status === 'fulfilled' && canViewTrips ? extractItems(tRes.value) : [];
-      setVehicles(gotVehicles.length > 0 || !canViewVehicles ? gotVehicles : fallbackVehicles);
-      setTrips(gotTrips.length > 0 ? gotTrips.map(t => ({
+      const gotExpenses = eRes.status === 'fulfilled' ? extractItems(eRes.value) : [];
+
+      setVehicles(gotVehicles);
+      setTrips(gotTrips.map(t => ({
         tripNumber: t.tripNumber || t.id,
         origin: t.origin || t.startLocation || 'Unknown',
         destination: t.destination || t.endLocation || 'Unknown',
         distance: t.distance || '0 km',
         status: t.status || 'Done',
         statusColor: t.status === 'ACTIVE' || t.status === 'ON_TRIP' ? '#4CAF50' : '#9E9E9E'
-      })) : fallbackTrips);
+      })));
+      setExpenses(gotExpenses);
     } catch (err) {
       console.error(err);
-      if (canViewVehicles) setVehicles(fallbackVehicles);
-      setTrips(fallbackTrips);
+      if (canViewVehicles) setVehicles([]);
+      setTrips([]);
+      setExpenses([]);
     } finally {
       setLoading(false);
     }
@@ -95,6 +91,7 @@ export default function DriverDashboard() {
   );
 
   // --- Dynamic Data Calculations ---
+  const totalExpenses = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   const totalVehicles = vehicles.length;
   const activeVehicles = vehicles.filter(v => v.status === 'ACTIVE' || v.status === 'ON_TRIP' || v.status === 'AVAILABLE').length;
   const maintenanceVehicles = vehicles.filter(v => v.status === 'MAINTENANCE').length;
@@ -142,7 +139,7 @@ export default function DriverDashboard() {
           <Card sx={{ height: '100%', bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}`, borderLeft: '4px solid #FF9800' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', mb: 1 }}>My Expenses</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>₹0</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>₹{totalExpenses.toLocaleString()}</Typography>
               <Typography sx={{ color: mutedText, fontSize: '0.75rem' }}>Expense records visible to me</Typography>
             </CardContent>
           </Card>
@@ -160,7 +157,7 @@ export default function DriverDashboard() {
           <Card sx={{ height: '100%', bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}`, borderLeft: '4px solid #F44336' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', mb: 1 }}>My Attention</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>{maintenanceVehicles > 0 ? maintenanceVehicles : 4}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>{maintenanceVehicles}</Typography>
               <Typography sx={{ color: mutedText, fontSize: '0.75rem' }}>Action items visible to me</Typography>
             </CardContent>
           </Card>

@@ -7,8 +7,8 @@ import {
 } from '@mui/material';
 import SecurityIcon from '@mui/icons-material/Security';
 import AddIcon from '@mui/icons-material/Add';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { ConfirmDialog } from '../components/Common';
 import api, { roleService, permissionService } from '../../services/api';
@@ -22,6 +22,7 @@ export const ALL_PERMISSIONS = [
   "driver_view", "driver_create", "driver_update", "driver_delete",
   "asset_view", "asset_create", "asset_update", "asset_delete", "asset_assign", "asset_return", "asset_transfer", "asset_mark_damaged", "asset_mark_lost",
   "trip_view", "trip_create", "trip_update", "trip_start", "trip_end", "trip_cancel",
+  "dispatch_view", "dispatch_assign",
   "fuel_view", "fuel_create", "fuel_update", "fuel_delete", "fuel_submit", "fuel_approve",
   "expense_view", "expense_create", "expense_update", "expense_delete", "expense_submit", "expense_approve",
   "repair_view", "repair_create", "repair_update", "repair_close",
@@ -200,19 +201,19 @@ export default function RolesPage() {
                       <Stack direction="row" spacing={0.5}>
                         {r.key !== 'super_admin' && (
                           <>
-                            {hasPermission('role_update') && <Tooltip title="EditOutlined Role">
+                            {hasPermission('role_update') && <Tooltip title="Edit Role">
                               <IconButton size="small" onClick={() => {
                                 const keys = r.rolePermissions ? r.rolePermissions.map(rp => rp.permission?.key) : (r.permissions || []);
                                 setForm({ name: r.name, key: r.key, status: r.status, permissions: keys });
                                 setEditId(r.id);
                                 setDialogOpen(true);
                               }}>
-                                <EditOutlinedIcon sx={{ fontSize: 17, color: '#60a5fa' }} />
+                                <EditIcon sx={{ fontSize: 17, color: '#60a5fa' }} />
                               </IconButton>
                             </Tooltip>}
                             {hasPermission('role_delete') && <Tooltip title="Delete Role">
                               <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, item: r })}>
-                                <DeleteOutlineIcon sx={{ fontSize: 17, color: '#ef4444' }} />
+                                <DeleteIcon sx={{ fontSize: 17, color: '#ef4444' }} />
                               </IconButton>
                             </Tooltip>}
                           </>
