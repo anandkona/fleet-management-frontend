@@ -80,9 +80,23 @@ export default function RolesPage() {
         }))
       ]);
 
-      setRoles(Array.isArray(rolesRes) ? rolesRes : rolesRes?.items ?? DEFAULT_ROLES);
+      let rawRoles = [];
+      if (Array.isArray(rolesRes)) rawRoles = rolesRes;
+      else if (Array.isArray(rolesRes?.data)) rawRoles = rolesRes.data;
+      else if (Array.isArray(rolesRes?.data?.data)) rawRoles = rolesRes.data.data;
+      else if (Array.isArray(rolesRes?.data?.items)) rawRoles = rolesRes.data.items;
+      else if (Array.isArray(rolesRes?.data?.roles)) rawRoles = rolesRes.data.roles;
+      else if (Array.isArray(rolesRes?.items)) rawRoles = rolesRes.items;
+      
+      setRoles(rawRoles.length > 0 ? rawRoles : DEFAULT_ROLES);
 
-      const perms = permsRes.data?.data ?? (Array.isArray(permsRes) ? permsRes : []);
+      let perms = [];
+      if (Array.isArray(permsRes)) perms = permsRes;
+      else if (Array.isArray(permsRes?.data)) perms = permsRes.data;
+      else if (Array.isArray(permsRes?.data?.data)) perms = permsRes.data.data;
+      else if (Array.isArray(permsRes?.data?.items)) perms = permsRes.data.items;
+      else if (Array.isArray(permsRes?.data?.permissions)) perms = permsRes.data.permissions;
+      
       setAvailablePermissions(perms);
 
       const grouped = perms.reduce((acc, p) => {
@@ -106,33 +120,46 @@ export default function RolesPage() {
   const handleSave = async () => {
     try {
       if (editId) {
-        // Mocking API call for role updates and assigning permissions
-        // await roleService.update(editId, { name: form.name, key: form.key, status: form.status });
-        // await roleService.assignPermissions(editId, form.permissions);
+        await roleService.update(editId, { name: form.name, key: form.key, status: form.status });
+        await roleService.assignPermissions(editId, form.permissions);
+        
         setRoles(prev => prev.map(r => r.id === editId ? { ...r, ...form, rolePermissions: toRolePerms(form.permissions) } : r));
         setSnack({ open: true, msg: 'Role updated successfully', severity: 'success' });
       } else {
-        // const newRoleRes = await roleService.create({ name: form.name, key: form.key, status: form.status });
-        // await roleService.assignPermissions(newRoleRes.id || newRoleRes.data?.id, form.permissions);
-        const newRole = { id: Date.now().toString(), ...form, rolePermissions: toRolePerms(form.permissions) };
+        const newRoleRes = await roleService.create({ name: form.name, key: form.key, status: form.status });
+        const newRoleId = newRoleRes.data?.id || newRoleRes.data?.data?.id || newRoleRes.id;
+        
+        if (newRoleId && form.permissions.length > 0) {
+          await roleService.assignPermissions(newRoleId, form.permissions);
+        }
+        
+        const newRole = { id: newRoleId || Date.now().toString(), ...form, rolePermissions: toRolePerms(form.permissions) };
         setRoles(prev => [newRole, ...prev]);
         setSnack({ open: true, msg: 'Role created successfully', severity: 'success' });
       }
       setDialogOpen(false);
     } catch (err) {
       console.error(err);
-      setSnack({ open: true, msg: 'Error saving role', severity: 'error' });
+      const url = err.config?.url;
+      const method = err.config?.method?.toUpperCase();
+      const status = err.response?.status;
+      setSnack({ open: true, msg: `Error saving role: ${status === 404 ? `Endpoint ${method} ${url} not found on Vercel` : err.message}`, severity: 'error' });
     }
   };
 
   const handleDelete = async () => {
     try {
-      // await roleService.delete(deleteConfirm.item.id);
+      if (deleteConfirm.item.id && !deleteConfirm.item.id.startsWith('role_')) {
+        await roleService.delete && await roleService.delete(deleteConfirm.item.id);
+      }
       setRoles(prev => prev.filter(r => r.id !== deleteConfirm.item.id));
       setSnack({ open: true, msg: 'Role deleted successfully', severity: 'success' });
     } catch (err) {
       console.error(err);
-      setSnack({ open: true, msg: 'Error deleting role', severity: 'error' });
+      const url = err.config?.url;
+      const method = err.config?.method?.toUpperCase();
+      const status = err.response?.status;
+      setSnack({ open: true, msg: `Error deleting role: ${status === 404 ? `Endpoint ${method} ${url} not found on Vercel` : err.message}`, severity: 'error' });
     } finally {
       setDeleteConfirm({ open: false, item: null });
     }
@@ -195,7 +222,7 @@ export default function RolesPage() {
                       <Chip label={r.status} size="small" color={r.status === 'ACTIVE' ? 'success' : 'default'} sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20 }} />
                     </TableCell>
                     <TableCell sx={{ color: 'text.primary', fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
-                      {permsCount >= availablePermissions.length && availablePermissions.length > 0 ? 'Full Access' : `${permsCount} permissions`}
+                      {(r.key === 'super_admin' || (permsCount >= availablePermissions.length && availablePermissions.length > 0)) ? 'Full Access' : `${permsCount} permissions`}
                     </TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                       <Stack direction="row" spacing={0.5}>

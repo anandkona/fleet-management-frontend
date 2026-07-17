@@ -151,39 +151,7 @@ export default function DashboardPage() {
   return (
     <Box sx={{ bgcolor: mainBg, minHeight: '100vh', p: 1.5, m: -3, color: textColor }}>
       
-      {/* FINANCE KPI CARDS (ADMIN ONLY) */}
-      {isAdmin && (
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          {summaryCards.map(c => (
-            <Grid item xs={12} sm={6} md={2} key={c.label}>
-              <Card 
-                onClick={() => c.path && navigate(c.path)}
-                sx={{ 
-                  bgcolor: cardBg, 
-                  borderRadius: 4, 
-                  color: textColor, 
-                  boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.03)', 
-                  border: `1px solid ${borderColor}`, 
-                  cursor: c.path ? 'pointer' : 'default',
-                  transition: 'transform 0.2s', 
-                  '&:hover': c.path ? { transform: 'translateY(-4px)' } : {}
-                }}
-              >
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{c.label}</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 900, mt: 1, mb: 0.5, color: c.isCnt ? textColor : c.label === 'Net Profit' && (financePnl.netProfit ?? 0) < 0 ? '#ef4444' : textColor }}>
-                    {c.value}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {React.cloneElement(c.icon, { sx: { color: c.color, fontSize: '0.8rem' } })}
-                    <Typography sx={{ color: c.color, fontWeight: 600, fontSize: '0.7rem' }}>Finance</Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
+
 
       {/* TOP STATS ROW */}
       <Grid container spacing={2} sx={{ mb: 2 }}>

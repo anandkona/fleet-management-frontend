@@ -33,7 +33,19 @@ export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState(() => {
     try {
       const stored = localStorage.getItem('fleet_notifications');
-      return stored ? JSON.parse(stored) : [];
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          // Retroactively fix old notifications that had the message 'success' or 'error'
+          return parsed.map(n => {
+            if (n.message === 'success' || n.message === 'error' || n.message === 'info') {
+              return { ...n, type: n.message, message: n.title, title: n.message.charAt(0).toUpperCase() + n.message.slice(1) };
+            }
+            return n;
+          });
+        }
+      }
+      return [];
     } catch (e) {
       return [];
     }
@@ -54,8 +66,17 @@ export function NotificationProvider({ children }) {
       const apiNotifications = normalizeNotifications(res.data?.data || res.data?.notifications || res.data || []);
 
       setNotifications((prev) => {
-        const localOnly = prev.filter((item) => item.source !== 'api');
-        return [...apiNotifications, ...localOnly].slice(0, 50);
+        // Merge apiNotifications with prev, avoiding duplicates by id
+        const merged = [...apiNotifications];
+        const apiIds = new Set(apiNotifications.map(n => n.id));
+        
+        prev.forEach(item => {
+          if (!apiIds.has(item.id)) {
+            merged.push(item);
+          }
+        });
+        
+        return merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 50);
       });
     } catch (error) {
       if (error.response?.status !== 401) {
@@ -70,12 +91,12 @@ export function NotificationProvider({ children }) {
     syncNotifications();
   }, [syncNotifications]);
 
-  const addNotification = useCallback((title, message, type = 'info') => {
-    enqueueSnackbar(title, { variant: type === 'error' ? 'error' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : 'info' });
+  const addNotification = useCallback((message, type = 'info') => {
+    enqueueSnackbar(message, { variant: type === 'error' ? 'error' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : 'info' });
 
     const newNotification = {
       id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-      title,
+      title: type.charAt(0).toUpperCase() + type.slice(1),
       message,
       type,
       read: false,
