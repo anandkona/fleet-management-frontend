@@ -201,26 +201,60 @@ export const assetCategoryService = {
   update: (id, data) => api.patch(`/assets/categories/${id}`, data),
 };
 
-// ─── DOCUMENTS ───────────────────────────────────────────────────────────────
-export const documentService = {
-  getAll: (params) => api.get('/documents', { params }),
-  create: (data) => api.post('/documents', data),
-  update: (id, data) => api.patch(`/documents/${id}`, data),
-  delete: (id) => api.delete(`/documents/${id}`),
-  upload: (formData) => api.post('/documents/upload', formData),
-  verify: (id) => api.post(`/documents/${id}/verify`),
-  archive: (id) => api.post(`/documents/${id}/archive`),
-  download: (id) => api.get(`/documents/${id}/download`, { responseType: 'blob' }),
-};
+
 
 // ─── FINANCE ──────────────────────────────────────────────────────────────────
 export const financeService = {
   getPnL: (params) => api.get('/finance/pnl', { params }),
   getTransactions: (params) => api.get('/finance/transactions', { params }),
+  getTransactionById: (id) => api.get(`/finance/transactions/${id}`),
   createTransaction: (data) => api.post('/finance/transactions', data),
+  updateTransaction: (id, data) => api.put(`/finance/transactions/${id}`, data),
+  deleteTransaction: (id) => api.delete(`/finance/transactions/${id}`),
   updateTransactionStatus: (id, status) => api.patch(`/finance/transactions/${id}/status`, { status }),
   getVendors: (params) => api.get('/finance/vendors', { params }),
+  getVendorById: (id) => api.get(`/finance/vendors/${id}`),
   createVendor: (data) => api.post('/finance/vendors', data),
+  updateVendor: (id, data) => api.put(`/finance/vendors/${id}`, data),
+  deleteVendor: (id) => api.delete(`/finance/vendors/${id}`),
+  getPayments: (params) => api.get('/finance/payments', { params }),
+  createPayment: (data) => api.post('/finance/payments', data),
+  getTripBillings: (params) => api.get('/finance/trip-billings', { params }),
+  getTripBillingById: (id) => api.get(`/finance/trip-billings/${id}`),
+  createTripBilling: (data) => api.post('/finance/trip-billings', data),
+  updateTripBilling: (id, data) => api.put(`/finance/trip-billings/${id}`, data),
+  deleteTripBilling: (id) => api.delete(`/finance/trip-billings/${id}`),
+};
+
+// ─── DRIVER ADVANCES ──────────────────────────────────────────────────────────
+export const driverAdvanceService = {
+  getAll: (params) => api.get('/driver-advances', { params }),
+  getById: (id) => api.get(`/driver-advances/${id}`),
+  create: (data) => api.post('/driver-advances', data),
+  update: (id, data) => api.patch(`/driver-advances/${id}`, data),
+  submit: (id, notes) => api.patch(`/driver-advances/${id}/submit`, { notes }),
+  approve: (id, notes) => api.patch(`/driver-advances/${id}/approve`, { notes }),
+  reject: (id, notes) => api.patch(`/driver-advances/${id}/reject`, { notes }),
+  requestChanges: (id, notes) => api.patch(`/driver-advances/${id}/request-changes`, { notes }),
+  issue: (id, data) => api.patch(`/driver-advances/${id}/issue`, data),
+  cancel: (id, notes) => api.patch(`/driver-advances/${id}/cancel`, { notes }),
+  getSettlements: (id, params) => api.get(`/driver-advances/${id}/settlements`, { params }),
+  createSettlement: (id, data) => api.post(`/driver-advances/${id}/settlements`, data),
+  getSummary: (params) => api.get('/driver-advances/reports/summary', { params }),
+};
+
+// ─── DRIVER SETTLEMENTS ───────────────────────────────────────────────────────
+export const driverSettlementService = {
+  getAll: (params) => api.get('/driver-settlements', { params }),
+  getById: (id) => api.get(`/driver-settlements/${id}`),
+  getSummary: (id) => api.get(`/driver-settlements/${id}/summary`),
+  submit: (id, notes) => api.patch(`/driver-settlements/${id}/submit`, { notes }),
+  review: (id, notes) => api.patch(`/driver-settlements/${id}/review`, { notes }),
+  approve: (id, notes) => api.patch(`/driver-settlements/${id}/approve`, { notes }),
+  settle: (id, data) => api.patch(`/driver-settlements/${id}/settle`, data),
+  reject: (id, notes) => api.patch(`/driver-settlements/${id}/reject`, { notes }),
+  requestChanges: (id, notes) => api.patch(`/driver-settlements/${id}/request-changes`, { notes }),
+  cancel: (id, notes) => api.patch(`/driver-settlements/${id}/cancel`, { notes }),
 };
 
 // ─── ROLES (standalone functions) ───────────────────────────────────────────
@@ -236,6 +270,19 @@ export const updateRole = (token, id, data) =>
 export const updateRolePermissions = (token, id, permissionKeys) =>
   api.patch(`/roles/${id}/permissions`, { permissionKeys }, { headers: { Authorization: `Bearer ${token}` } });
 
+// ─── DOCUMENTS ────────────────────────────────────────────────────────────────
+export const documentService = {
+  getAll: (params) => api.get('/documents', { params }),
+  getById: (id) => api.get(`/documents/${id}`),
+  upload: (formData) => api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  update: (id, data) => api.put(`/documents/${id}`, data),
+  delete: (id) => api.delete(`/documents/${id}`),
+  getViewUrl: (id) => api.get(`/documents/${id}/view`),
+  getDownloadUrl: (id) => api.get(`/documents/${id}/download`),
+  verify: (id, data) => api.post(`/documents/${id}/verify`, data),
+  archive: (id) => api.post(`/documents/${id}/archive`),
+};
+
 // ─── PERMISSIONS (standalone functions) ─────────────────────────────────────
 export const getPermissions = (token) =>
   api.get('/permissions', { headers: { Authorization: `Bearer ${token}` } });
@@ -243,6 +290,7 @@ export const getPermissions = (token) =>
 // ─── DRIVER PORTAL ────────────────────────────────────────────────────────────
 export const driverPortalService = {
   getProfile: () => api.get('/me/driver-profile'),
+  updateProfile: (data) => api.put('/me/driver-profile', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   getTrips: (params) => api.get('/me/driver-trips', { params }),
   startTrip: (id, data) => api.post(`/me/driver-trips/${id}/start`, data),
   endTrip: (id, data) => api.post(`/me/driver-trips/${id}/end`, data),
@@ -252,6 +300,36 @@ export const driverPortalService = {
   getAdvances: () => api.get('/me/driver-advances'),
   getSettlements: () => api.get('/me/driver-settlements'),
   getVehicles: () => api.get('/me/driver-vehicles'),
+};
+
+// ─── DRIVER SUBMISSIONS ───────────────────────────────────────────────────────
+export const driverSubmissionService = {
+  getOverview: (params) => api.get('/driver-submissions', { params }),
+
+  getFuel: (params) => api.get('/driver-submissions/fuel', { params }),
+  approveFuel: (id, data) => api.patch(`/driver-submissions/fuel/${id}/approve`, data),
+  rejectFuel: (id, data) => api.patch(`/driver-submissions/fuel/${id}/reject`, data),
+  requestFuelChanges: (id, data) => api.patch(`/driver-submissions/fuel/${id}/request-changes`, data),
+
+  getExpenses: (params) => api.get('/driver-submissions/expenses', { params }),
+  approveExpense: (id, data) => api.patch(`/driver-submissions/expenses/${id}/approve`, data),
+  rejectExpense: (id, data) => api.patch(`/driver-submissions/expenses/${id}/reject`, data),
+  requestExpenseChanges: (id, data) => api.patch(`/driver-submissions/expenses/${id}/request-changes`, data),
+
+  getDocuments: (params) => api.get('/driver-submissions/documents', { params }),
+  verifyDocument: (id, data) => api.patch(`/driver-submissions/documents/${id}/verify`, data),
+  rejectDocument: (id, data) => api.patch(`/driver-submissions/documents/${id}/reject`, data),
+  requestDocumentChanges: (id, data) => api.patch(`/driver-submissions/documents/${id}/request-changes`, data),
+
+  getIssues: (params) => api.get('/driver-submissions/issues', { params }),
+  acknowledgeIssue: (id, data) => api.patch(`/driver-submissions/issues/${id}/acknowledge`, data),
+  resolveIssue: (id, data) => api.patch(`/driver-submissions/issues/${id}/resolve`, data),
+  rejectIssue: (id, data) => api.patch(`/driver-submissions/issues/${id}/reject`, data),
+
+  getInspections: (params) => api.get('/driver-submissions/inspections', { params }),
+  reviewInspection: (id, data) => api.patch(`/driver-submissions/inspections/${id}/review`, data),
+  rejectInspection: (id, data) => api.patch(`/driver-submissions/inspections/${id}/reject`, data),
+  requestInspectionChanges: (id, data) => api.patch(`/driver-submissions/inspections/${id}/request-changes`, data),
 };
 
 export default api;

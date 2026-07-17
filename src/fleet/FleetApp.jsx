@@ -18,7 +18,6 @@ const MaintenancePage = lazy(() => import('./pages/MaintenancePage'));
 const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
 const RepairsPage = lazy(() => import('./pages/RepairsPage'));
 const AIInsightsPage = lazy(() => import('./pages/AIInsightsPage'));
-const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const DocumentsPage = lazy(() => import('./pages/DocumentsPage'));
 const FinancePage = lazy(() => import('./pages/FinancePage'));
 const UsersPage = lazy(() => import('./pages/UsersPage'));
@@ -30,11 +29,30 @@ const DriverDashboard = lazy(() => import('./pages/DriverDashboard'));
 const DriverTripsPage = lazy(() => import('./pages/DriverTripsPage'));
 const DriverDocumentsPage = lazy(() => import('./pages/DriverDocumentsPage'));
 const DriverProfilePage = lazy(() => import('./pages/DriverProfilePage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+
+// New Finance & Driver Ops Pages
+const FinanceTransactionsPage = lazy(() => import('./pages/FinanceTransactionsPage'));
+const VendorsPage = lazy(() => import('./pages/VendorsPage'));
+const TripBillingPage = lazy(() => import('./pages/TripBillingPage'));
+const PaymentsPage = lazy(() => import('./pages/PaymentsPage'));
+const DriverAdvancesPage = lazy(() => import('./pages/DriverAdvancesPage'));
+const DriverSettlementsPage = lazy(() => import('./pages/DriverSettlementsPage'));
+const ComplianceBoardPage = lazy(() => import('./pages/ComplianceBoardPage'));
+const DriverPortalAdvancesPage = lazy(() => import('./pages/DriverPortalAdvancesPage'));
+const DriverPortalSettlementsPage = lazy(() => import('./pages/DriverPortalSettlementsPage'));
+const AccountsPage = lazy(() => import('./pages/AccountsPage'));
+const CustomersPage = lazy(() => import('./pages/CustomersPage'));
+const FinanceCategoriesPage = lazy(() => import('./pages/FinanceCategoriesPage'));
+const PODBillingChainPage = lazy(() => import('./pages/PODBillingChainPage'));
+const DriverSubmissionsPage = lazy(() => import('./pages/DriverSubmissionsPage'));
 
 const VALID_TABS = [
   'dashboard', 'tracking', 'dispatch', 'vehicle-ops', 'trip-logs', 'drivers', 'inventory', 'maintenance',
-  'repairs', 'expenses', 'fuel', 'finance', 'ai-insights', 'reports', 'documents', 'users', 'roles', 'settings',
-  'driver-dashboard', 'driver-trips', 'driver-documents', 'driver-profile'
+  'repairs', 'expenses', 'fuel', 'finance', 'transactions', 'vendors', 'trip-billing', 'payments', 
+  'advances', 'settlements', 'compliance-board', 'ai-insights', 'documents', 'users', 'roles', 'settings',
+  'driver-dashboard', 'driver-trips', 'driver-documents', 'driver-profile', 'driver-advances', 'driver-settlements',
+  'accounts', 'customers', 'finance-categories', 'pod-billing', 'driver-submissions', 'profile'
 ];
 
 const pageMap = {
@@ -51,7 +69,6 @@ const pageMap = {
   fuel: FuelPage,
   finance: FinancePage,
   'ai-insights': AIInsightsPage,
-  reports: ReportsPage,
   documents: DocumentsPage,
   users: UsersPage,
   roles: RolesPage,
@@ -60,6 +77,21 @@ const pageMap = {
   'driver-trips': DriverTripsPage,
   'driver-documents': DriverDocumentsPage,
   'driver-profile': DriverProfilePage,
+  'transactions': FinanceTransactionsPage,
+  'vendors': VendorsPage,
+  'trip-billing': TripBillingPage,
+  'payments': PaymentsPage,
+  'advances': DriverAdvancesPage,
+  'settlements': DriverSettlementsPage,
+  'compliance-board': ComplianceBoardPage,
+  'driver-advances': DriverPortalAdvancesPage,
+  'driver-settlements': DriverPortalSettlementsPage,
+  'accounts': AccountsPage,
+  'customers': CustomersPage,
+  'finance-categories': FinanceCategoriesPage,
+  'pod-billing': PODBillingChainPage,
+  'driver-submissions': DriverSubmissionsPage,
+  'profile': ProfilePage,
 };
 
 const PageLoader = () => (
@@ -88,7 +120,21 @@ const tabPermissions = {
   'driver-dashboard': 'driver_my_dashboard_view',
   'driver-trips': 'driver_my_trips_view',
   'driver-documents': 'driver_my_documents_view',
-  'driver-profile': 'driver_my_profile_view'
+  'driver-profile': 'driver_my_profile_view',
+  'transactions': 'finance_view',
+  'vendors': 'finance_view',
+  'trip-billing': 'finance_view',
+  'payments': 'finance_view',
+  'advances': 'driver_advance_view',
+  'settlements': 'driver_settlement_view',
+  'compliance-board': 'compliance_view',
+  'driver-advances': 'driver_advance_view_own',
+  'driver-settlements': 'driver_settlement_view_own',
+  'accounts': 'finance_view',
+  'customers': 'finance_view',
+  'finance-categories': 'finance_view',
+  'pod-billing': 'finance_view',
+  'driver-submissions': 'driver_submission_view',
 };
 
 export default function FleetApp() {
@@ -106,7 +152,7 @@ export default function FleetApp() {
   useEffect(() => {
     if (loading) return;
 
-    const isDriverTab = activeTab.startsWith('driver-');
+    const isDriverTab = activeTab.startsWith('driver-') && activeTab !== 'driver-submissions';
     if (isDriverTab && roleLabel !== 'driver') {
       navigate('/dashboard', { replace: true });
       return;
@@ -116,7 +162,7 @@ export default function FleetApp() {
     if (requiredPermission && !hasPermission(requiredPermission)) {
       // Find the first tab they do have permission for
       const firstAllowedTab = Object.keys(tabPermissions).find(t => {
-        if (t.startsWith('driver-') && roleLabel !== 'driver') return false;
+        if (t.startsWith('driver-') && t !== 'driver-submissions' && roleLabel !== 'driver') return false;
         return hasPermission(tabPermissions[t]);
       });
       if (firstAllowedTab) {

@@ -18,12 +18,33 @@ import { Menu, ListItemIcon, ListItemText, Snackbar, Alert, List, ListItem, Divi
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
-
-
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function InventoryPage() {
   const { addNotification } = useNotification();
-  const [tabValue, setTabValue] = useState(0);
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const [tabValue, setTabValue] = useState(() => {
+    return new URLSearchParams(location.search).get('tab') === 'categories' ? 1 : 0;
+  });
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('tab') === 'categories') {
+      setTabValue(1);
+    } else {
+      setTabValue(0);
+    }
+  }, [location.search]);
+
+  const handleTabChange = (e, nv) => {
+    setTabValue(nv);
+    if (nv === 1) {
+      navigate('/inventory?tab=categories', { replace: true });
+    } else {
+      navigate('/inventory', { replace: true });
+    }
+  };
 
   const [assets, setAssets] = useState([]);
   const [categoriesList, setCategoriesList] = useState([]);
@@ -193,7 +214,7 @@ export default function InventoryPage() {
       </Box>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={tabValue} onChange={(e, nv) => setTabValue(nv)} sx={{ '& .MuiTab-root': { fontWeight: 600 } }}>
+        <Tabs value={tabValue} onChange={handleTabChange} sx={{ '& .MuiTab-root': { fontWeight: 600 } }}>
           <Tab label="Assets" />
           <Tab label="Categories" />
         </Tabs>

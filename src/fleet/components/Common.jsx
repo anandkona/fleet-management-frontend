@@ -123,11 +123,26 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, loadi
   );
 }
 
-export function PageHeader({ action }) {
-  if (!action) return null;
+export function PageHeader({ title, subtitle, icon, action }) {
+  const hasContent = !!(title || subtitle || icon);
+  if (!hasContent && !action) return null;
+
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-      {action}
+    <Box sx={{ display: 'flex', justifyContent: hasContent ? 'space-between' : 'flex-end', alignItems: 'center', mb: hasContent ? 3 : 1 }}>
+      {hasContent && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {icon && <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'primary.light', color: 'primary.main', borderRadius: 2, p: 1, '& svg': { fontSize: 32 } }}>{icon}</Box>}
+          <Box>
+            {title && <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>{title}</Typography>}
+            {subtitle && <Typography variant="body2" sx={{ color: 'text.secondary' }}>{subtitle}</Typography>}
+          </Box>
+        </Box>
+      )}
+      {action && (
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {action}
+        </Box>
+      )}
     </Box>
   );
 }

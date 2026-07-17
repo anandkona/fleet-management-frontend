@@ -142,8 +142,8 @@ export default function AuthProvider({ children }) {
   };
 
   const ROLE_PERMISSION_FALLBACKS = {
-    super_admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view', 'dispatch_view', 'dispatch_assign'],
-    admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view', 'dispatch_view', 'dispatch_assign'],
+    super_admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view', 'dispatch_view', 'dispatch_assign', 'driver_submission_view', 'driver_submission_review', 'driver_fuel_approve', 'driver_expense_approve', 'driver_document_verify', 'driver_issue_review', 'driver_inspection_review'],
+    admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view', 'dispatch_view', 'dispatch_assign', 'driver_submission_view', 'driver_submission_review', 'driver_fuel_approve', 'driver_expense_approve', 'driver_document_verify', 'driver_issue_review', 'driver_inspection_review'],
     supervisor: ['trip_view', 'vehicle_view', 'driver_view', 'report_view'],
     manager: ['trip_view', 'vehicle_view', 'driver_view', 'report_view'],
     mechanic: ['maintenance_view', 'repair_view'],

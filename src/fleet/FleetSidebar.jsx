@@ -10,8 +10,11 @@ import {
   Divider,
   Avatar,
   IconButton,
-  useTheme
+  useTheme,
+  Collapse
 } from '@mui/material';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
@@ -32,6 +35,16 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import SecurityIcon from '@mui/icons-material/Security';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import PaymentIcon from '@mui/icons-material/Payment';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
+import MoneyIcon from '@mui/icons-material/Money';
+import HandshakeIcon from '@mui/icons-material/Handshake';
+import CategoryIcon from '@mui/icons-material/Category';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import { ConfirmDialog } from './components/Common';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,17 +54,17 @@ const menuConfig = [
   {
     category: 'OVERVIEW',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
-      { id: 'tracking', label: 'Live Tracking', icon: <MyLocationIcon /> }
+      { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> }
     ]
   },
   {
     category: 'DRIVER PORTAL',
     items: [
-      { id: 'driver-dashboard', label: 'My Dashboard', icon: <DashboardIcon />, permission: 'driver_my_dashboard_view' },
       { id: 'driver-trips', label: 'My Trips', icon: <AssignmentIcon />, permission: 'driver_my_trips_view' },
       { id: 'driver-documents', label: 'My Documents', icon: <DescriptionIcon />, permission: 'driver_my_documents_view' },
-      { id: 'driver-profile', label: 'My Profile', icon: <PeopleIcon />, permission: 'driver_my_profile_view' }
+      { id: 'driver-profile', label: 'My Profile', icon: <PeopleIcon />, permission: 'driver_my_profile_view' },
+      { id: 'driver-advances', label: 'My Advances', icon: <MoneyIcon />, permission: 'driver_advance_view_own' },
+      { id: 'driver-settlements', label: 'My Settlements', icon: <HandshakeIcon />, permission: 'driver_settlement_view_own' }
     ]
   },
   {
@@ -61,29 +74,38 @@ const menuConfig = [
       { id: 'trip-logs', label: 'Trip Logs', icon: <AssignmentIcon />, permission: 'trip_view' },
       { id: 'fuel', label: 'Fuel Logs', icon: <LocalGasStationIcon />, permission: 'fuel_view' },
       { id: 'drivers', label: 'Drivers', icon: <PeopleIcon />, permission: 'driver_view' },
-      { id: 'dispatch', label: 'Dispatch Board', icon: <DynamicFeedIcon />, permission: 'dispatch_view' }
-    ]
-  },
-  {
-    category: 'ASSETS',
-    items: [
-      { id: 'inventory', label: 'Inventory', icon: <InventoryIcon />, permission: 'asset_view' },
-      { id: 'maintenance', label: 'Maintenance', icon: <BuildIcon />, badge: '2', badgeColor: 'black', permission: 'maintenance_view' },
-      { id: 'repairs', label: 'Repairs', icon: <BuildCircleIcon sx={{ fontSize: '26px !important' }} />, permission: 'repair_view' },
-      { id: 'expenses', label: 'Expenses', icon: <AccountBalanceWalletIcon />, permission: 'expense_view' }
+      { id: 'driver-submissions', label: 'Driver Submissions', icon: <AssignmentIcon />, permission: 'driver_submission_view' },
+      { id: 'dispatch', label: 'Dispatch Board', icon: <DynamicFeedIcon />, permission: 'dispatch_view' },
+      { id: 'compliance-board', label: 'Compliance Board', icon: <FactCheckIcon />, permission: 'compliance_view' }
     ]
   },
   {
     category: 'FINANCE',
     items: [
-      { id: 'finance', label: 'Finance & PnL', icon: <MonetizationOnIcon />, permission: 'finance_view' }
+      {
+        id: 'finance-module',
+        label: 'Finance',
+        icon: <MonetizationOnIcon />,
+        permission: 'finance_view',
+        subItems: [
+          { id: 'finance', label: 'Finance & PnL', icon: <MonetizationOnIcon />, permission: 'finance_view' },
+          { id: 'transactions', label: 'Transactions', icon: <ReceiptLongIcon />, permission: 'finance_view' },
+          { id: 'accounts', label: 'Accounts', icon: <AccountBalanceIcon />, permission: 'finance_view' },
+          { id: 'customers', label: 'Customers', icon: <PeopleIcon />, permission: 'finance_view' },
+          { id: 'vendors', label: 'Vendors', icon: <StorefrontIcon />, permission: 'finance_view' },
+          { id: 'trip-billing', label: 'Trip Billing', icon: <ReceiptIcon />, permission: 'finance_view' },
+          { id: 'pod-billing', label: 'POD Chain', icon: <FactCheckIcon />, permission: 'finance_view' },
+          { id: 'payments', label: 'Payments', icon: <PaymentIcon />, permission: 'finance_view' },
+          { id: 'advances', label: 'Driver Advances', icon: <MoneyIcon />, permission: 'driver_advance_view' },
+          { id: 'settlements', label: 'Driver Settlements', icon: <HandshakeIcon />, permission: 'driver_settlement_view' }
+        ]
+      }
     ]
   },
   {
     category: 'INTELLIGENCE',
     items: [
-      { id: 'ai-insights', label: 'AI Insights', icon: <AutoAwesomeIcon />, badge: 'AI', badgeColor: 'info', permission: 'report_view' },
-      { id: 'reports', label: 'Reports', icon: <AssessmentIcon />, permission: 'report_view' }
+      { id: 'ai-insights', label: 'AI Insights', icon: <AutoAwesomeIcon />, badge: 'AI', badgeColor: 'info', permission: 'report_view' }
     ]
   },
   {
@@ -102,6 +124,7 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
   const isDark = theme.palette.mode === 'dark';
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [dispatchSummary, setDispatchSummary] = useState(null);
+  const [openMenus, setOpenMenus] = useState({});
   const navigate = useNavigate();
 
   const { user, permissions, logout, hasPermission } = useAuth();
@@ -115,7 +138,11 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
             setDispatchSummary(res.data.data.summary);
           }
         })
-        .catch(err => console.error("Failed to fetch dispatch summary for badges", err));
+        .catch(err => {
+          if (err.response?.status !== 403) {
+            console.error("Failed to fetch dispatch summary for badges", err);
+          }
+        });
     }
   }, [hasPermission]);
 
@@ -132,8 +159,14 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
     if (section.category === 'DRIVER PORTAL' && roleLabel !== 'driver') {
       return { ...section, items: [] };
     }
-    const allowedItems = section.items.filter(item => {
-      // If the item doesn't explicitly require a permission, always show it.
+    const allowedItems = section.items.map(item => {
+      if (item.subItems) {
+        const allowedSubItems = item.subItems.filter(sub => !sub.permission || hasPermission(sub.permission));
+        return { ...item, subItems: allowedSubItems };
+      }
+      return item;
+    }).filter(item => {
+      if (item.subItems) return item.subItems.length > 0 && (!item.permission || hasPermission(item.permission));
       if (!item.permission) return true;
       return hasPermission(item.permission);
     }).map(item => {
@@ -154,6 +187,10 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
     });
     return { ...section, items: allowedItems };
   }).filter(section => section.items.length > 0);
+
+  const handleToggleMenu = (id) => {
+    setOpenMenus(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const handleLogout = async () => {
     setLogoutDialogOpen(false);
@@ -214,66 +251,86 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
             </Typography>
             <List sx={{ p: 0 }}>
               {section.items.map((item) => {
-                const isActive = activeTab === item.id;
-                return (
-                  <ListItem key={item.id} disablePadding sx={{ mb: '4px', px: '12px' }}>
-                    <ListItemButton
-                      onClick={() => setActiveTab(item.id)}
-                      sx={{
-                        borderRadius: '8px',
-                        py: '6px',
-                        px: '12px',
-                        backgroundColor: isActive ? (isDark ? 'rgba(25, 118, 210, 0.15)' : '#E3F2FD') : 'transparent',
-                        color: isActive ? '#1976d2' : (isDark ? '#CBD5E1' : '#475569'),
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          backgroundColor: isActive ? (isDark ? 'rgba(25, 118, 210, 0.25)' : '#BBDEFB') : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
-                          color: isActive ? '#1976d2' : (isDark ? '#F8FAFC' : '#0F172A'),
-                          '& .MuiListItemIcon-root': {
-                            color: isActive ? '#1976d2' : (isDark ? '#F8FAFC' : '#0F172A')
-                          }
-                        }
-                      }}
-                    >
-                      <ListItemIcon
+                const isExpanded = openMenus[item.id];
+                const isSubItemActive = item.subItems && item.subItems.some(sub => sub.id === activeTab);
+                const isActive = activeTab === item.id || isSubItemActive;
+                
+                const renderItem = (i, isSub = false) => {
+                  const isIActive = activeTab === i.id;
+                  return (
+                    <ListItem key={i.id} disablePadding sx={{ mb: '4px', px: isSub ? '24px' : '12px' }}>
+                      <ListItemButton
+                        onClick={() => i.subItems ? handleToggleMenu(i.id) : setActiveTab(i.id)}
                         sx={{
-                          minWidth: '32px',
-                          color: isActive ? '#1976d2' : 'text.secondary',
-                          '& svg': { fontSize: '20px' }
+                          borderRadius: '8px',
+                          py: '6px',
+                          px: '12px',
+                          backgroundColor: isIActive ? (isDark ? 'rgba(25, 118, 210, 0.15)' : '#E3F2FD') : 'transparent',
+                          color: isIActive ? '#1976d2' : (isDark ? '#CBD5E1' : '#475569'),
+                          transition: 'all 0.2s',
+                          '&:hover': {
+                            backgroundColor: isIActive ? (isDark ? 'rgba(25, 118, 210, 0.25)' : '#BBDEFB') : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
+                            color: isIActive ? '#1976d2' : (isDark ? '#F8FAFC' : '#0F172A'),
+                            '& .MuiListItemIcon-root': {
+                              color: isIActive ? '#1976d2' : (isDark ? '#F8FAFC' : '#0F172A')
+                            }
+                          }
                         }}
                       >
-                        {item.icon}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Typography sx={{ fontSize: '0.875rem', fontWeight: isActive ? 600 : 500 }}>
-                            {item.label}
-                          </Typography>
-                        }
-                      />
-                      {item.badge && (
-                        <Box
+                        <ListItemIcon
                           sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            height: '18px',
-                            minWidth: '18px',
-                            borderRadius: '50%',
-                            backgroundColor: item.badgeColor === 'black' ? (isDark ? '#333' : '#111827') : item.badgeColor === 'error' ? 'rgba(239, 68, 68, 0.15)' : item.badgeColor === 'warning' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(3, 169, 244, 0.15)',
-                            border: `1px solid ${item.badgeColor === 'black' ? (isDark ? '#444' : '#000') : item.badgeColor === 'error' ? 'rgba(239, 68, 68, 0.3)' : item.badgeColor === 'warning' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(3, 169, 244, 0.3)'}`,
-                            color: item.badgeColor === 'black' ? '#ffffff' : item.badgeColor === 'error' ? '#ef4444' : item.badgeColor === 'warning' ? '#f59e0b' : '#03a9f4',
-                            fontSize: '0.6rem',
-                            fontWeight: 700,
-                            px: 0.5,
-                            letterSpacing: '0.03em'
+                            minWidth: '32px',
+                            color: isIActive ? '#1976d2' : 'text.secondary',
+                            '& svg': { fontSize: isSub ? '18px' : '20px' }
                           }}
                         >
-                          {item.badge}
-                        </Box>
-                      )}
-                    </ListItemButton>
-                  </ListItem>
+                          {i.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Typography sx={{ fontSize: '0.875rem', fontWeight: isIActive ? 600 : 500 }}>
+                              {i.label}
+                            </Typography>
+                          }
+                        />
+                        {i.badge && (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              height: '18px',
+                              minWidth: '18px',
+                              borderRadius: '50%',
+                              backgroundColor: i.badgeColor === 'black' ? (isDark ? '#333' : '#111827') : i.badgeColor === 'error' ? 'rgba(239, 68, 68, 0.15)' : i.badgeColor === 'warning' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(3, 169, 244, 0.15)',
+                              border: `1px solid ${i.badgeColor === 'black' ? (isDark ? '#444' : '#000') : i.badgeColor === 'error' ? 'rgba(239, 68, 68, 0.3)' : i.badgeColor === 'warning' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(3, 169, 244, 0.3)'}`,
+                              color: i.badgeColor === 'black' ? '#ffffff' : i.badgeColor === 'error' ? '#ef4444' : i.badgeColor === 'warning' ? '#f59e0b' : '#03a9f4',
+                              fontSize: '0.6rem',
+                              fontWeight: 700,
+                              px: 0.5,
+                              letterSpacing: '0.03em'
+                            }}
+                          >
+                            {i.badge}
+                          </Box>
+                        )}
+                        {i.subItems && (openMenus[i.id] ? <ExpandLess sx={{ fontSize: 20 }} /> : <ExpandMore sx={{ fontSize: 20 }} />)}
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                };
+
+                return (
+                  <React.Fragment key={item.id}>
+                    {renderItem(item)}
+                    {item.subItems && (
+                      <Collapse in={openMenus[item.id]} timeout="auto" unmountOnExit>
+                        <List component="div" disablePadding>
+                          {item.subItems.map((sub) => renderItem(sub, true))}
+                        </List>
+                      </Collapse>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </List>

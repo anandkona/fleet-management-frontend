@@ -1,226 +1,238 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Grid, Card, CardContent, Typography, Box, Stack,
-  Table, TableBody, TableCell, TableRow, Avatar,
-  TableContainer, Divider, useTheme
+  Avatar, useTheme, Chip, Button
 } from '@mui/material';
 import {
-  Dashboard as DashboardIcon, TrendingUp, CheckCircleOutline, Sync, ErrorOutline,
-  LocationOn, Opacity, Adjust, BatteryChargingFull, Build
+  Route, AccountBalanceWallet, DirectionsCar, NotificationsActive,
+  TrendingUp, LocalShipping, ArrowForward, AccessTime, CheckCircle
 } from '@mui/icons-material';
-import api from '../../services/api';
+import { driverPortalService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { alpha } from '@mui/material/styles';
-
-
+import { useNavigate } from 'react-router-dom';
 
 function extractItems(res) {
-  const raw = res.data;
+  const raw = res?.data;
   const d = raw?.data ?? raw;
   return d?.items ?? (Array.isArray(d) ? d : []);
 }
 
 export default function DriverDashboard() {
-  const { permissions } = useAuth();
-  const perms = permissions || [];
-  
-  const canViewVehicles = perms.includes('vehicle_view');
-  const canViewTrips = perms.includes('trip_view');
+  const { user } = useAuth();
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const isDark = theme.palette.mode === 'dark';
 
   const [loading, setLoading] = useState(true);
-  const [vehicles, setVehicles] = useState([]);
   const [trips, setTrips] = useState([]);
-  const [expenses, setExpenses] = useState([]);
-
-  const { user } = useAuth();
-  const roleName = user?.role?.name || user?.role?.key || user?.role || 'User';
+  const [vehicles, setVehicles] = useState([]);
+  const [advances, setAdvances] = useState([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const fetchPromises = [
-        canViewVehicles ? api.get('/vehicles', { params: { limit: 100 } }) : Promise.resolve({ data: [] }),
-        canViewTrips ? api.get('/trips', { params: { limit: 100 } }) : Promise.resolve({ data: [] }),
-        api.get('/expenses', { params: { limit: 100 } }).catch(() => ({ data: [] }))
-      ];
+      const [tRes, vRes, aRes] = await Promise.allSettled([
+        driverPortalService.getTrips({ limit: 10 }).catch(() => ({ data: [] })),
+        driverPortalService.getVehicles().catch(() => ({ data: [] })),
+        driverPortalService.getAdvances().catch(() => ({ data: [] }))
+      ]);
 
-      const [vRes, tRes, eRes] = await Promise.allSettled(fetchPromises);
+      const gotTrips = tRes.status === 'fulfilled' ? extractItems(tRes.value) : [];
+      const gotVehicles = vRes.status === 'fulfilled' ? extractItems(vRes.value) : [];
+      const gotAdvances = aRes.status === 'fulfilled' ? extractItems(aRes.value) : [];
 
-      const gotVehicles = vRes.status === 'fulfilled' && canViewVehicles ? extractItems(vRes.value) : [];
-      const gotTrips = tRes.status === 'fulfilled' && canViewTrips ? extractItems(tRes.value) : [];
-      const gotExpenses = eRes.status === 'fulfilled' ? extractItems(eRes.value) : [];
-
+      setTrips(gotTrips);
       setVehicles(gotVehicles);
-      setTrips(gotTrips.map(t => ({
-        tripNumber: t.tripNumber || t.id,
-        origin: t.origin || t.startLocation || 'Unknown',
-        destination: t.destination || t.endLocation || 'Unknown',
-        distance: t.distance || '0 km',
-        status: t.status || 'Done',
-        statusColor: t.status === 'ACTIVE' || t.status === 'ON_TRIP' ? '#4CAF50' : '#9E9E9E'
-      })));
-      setExpenses(gotExpenses);
+      setAdvances(gotAdvances);
     } catch (err) {
       console.error(err);
-      if (canViewVehicles) setVehicles([]);
-      setTrips([]);
-      setExpenses([]);
     } finally {
       setLoading(false);
     }
-  }, [canViewVehicles, canViewTrips]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-  const mainBg = isDark ? '#121212' : theme.palette.background.default;
-  const cardBg = isDark ? '#1E1E1E' : theme.palette.background.paper;
-  const textColor = theme.palette.text.primary;
-  const mutedText = theme.palette.text.secondary;
-  const borderColor = theme.palette.divider;
+  // Derived metrics
+  const activeTrips = trips.filter(t => t.status === 'ON_TRIP' || t.status === 'ACTIVE').length;
+  const totalAdvances = advances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+  const pendingAdvances = advances.filter(a => a.status === 'SUBMITTED' || a.status === 'PENDING').length;
   
-  const ProgressBar = ({ label, value, max, color, amount }) => (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-      <Typography sx={{ width: 80, fontSize: '0.65rem', color: textColor, fontWeight: 600 }}>{label}</Typography>
-      <Box sx={{ flex: 1, height: 6, bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: 3, overflow: 'hidden' }}>
-        <Box sx={{ width: `${max > 0 ? (value/max)*100 : 0}%`, height: '100%', bgcolor: color, borderRadius: 3 }} />
-      </Box>
-      <Typography sx={{ width: 60, textAlign: 'right', fontSize: '0.65rem', color: textColor, fontWeight: 700 }}>{amount !== undefined ? amount : value}</Typography>
-    </Box>
-  );
+  const currentTrip = trips.find(t => t.status === 'ON_TRIP' || t.status === 'ACTIVE') || trips[0];
 
-  // --- Dynamic Data Calculations ---
-  const totalExpenses = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  const totalVehicles = vehicles.length;
-  const activeVehicles = vehicles.filter(v => v.status === 'ACTIVE' || v.status === 'ON_TRIP' || v.status === 'AVAILABLE').length;
-  const maintenanceVehicles = vehicles.filter(v => v.status === 'MAINTENANCE').length;
-  const activeUtilization = totalVehicles > 0 ? ((activeVehicles / totalVehicles) * 100).toFixed(1) : 0;
+  // Colors
+  const mainBg = isDark ? '#0F172A' : '#F1F5F9';
+  const cardBg = isDark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.9)';
+  const glassEffect = {
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+  };
 
-  const trucks = vehicles.filter(v => (v.vehicleType || v.type || '').toLowerCase().includes('truck'));
-  const vans = vehicles.filter(v => (v.vehicleType || v.type || '').toLowerCase().includes('van'));
-  const cars = vehicles.filter(v => (v.vehicleType || v.type || '').toLowerCase().includes('car') || (v.vehicleType || v.type || '').toLowerCase().includes('suv'));
+  const getGreeting = () => {
+    const hr = new Date().getHours();
+    if (hr < 12) return 'Good morning';
+    if (hr < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
 
-  const truckAvailable = trucks.filter(v => v.status === 'AVAILABLE' || v.status === 'ACTIVE').length;
-  const vanAvailable = vans.filter(v => v.status === 'AVAILABLE' || v.status === 'ACTIVE').length;
-  const carAvailable = cars.filter(v => v.status === 'AVAILABLE' || v.status === 'ACTIVE').length;
+  const name = user?.name || user?.fullName || 'Driver';
 
-  return (
-    <Box sx={{ bgcolor: mainBg, minHeight: '100vh', p: 1.5, m: -3, color: textColor }}>
-      
-      {/* HEADER SECTION */}
-      <Box sx={{ mb: 3 }}>
-        <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 0.5 }}>WORKSPACE</Typography>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: textColor, mb: 3 }}>Overview</Typography>
-
-        <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 0.5 }}>
-          {roleName.toUpperCase()}
-        </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: textColor, mb: 0.5 }}>My Dashboard</Typography>
-            <Typography sx={{ color: mutedText, fontSize: '0.85rem' }}>Individual dashboard: only records visible to this logged-in user through their own role, assignment, and data-scope permissions.</Typography>
+  const StatCard = ({ title, value, icon, gradient, delay }) => (
+    <Card sx={{
+      bgcolor: cardBg, ...glassEffect, borderRadius: 3,
+      border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+      boxShadow: isDark ? '0 12px 48px rgba(0,0,0,0.7)' : '0 10px 30px rgba(0,0,0,0.25)',
+      position: 'relative', overflow: 'hidden',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      animation: `fadeInUp 0.6s ease-out ${delay}s both`,
+      '&:hover': { transform: 'translateY(-4px)', boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.9)' : '0 20px 50px rgba(0,0,0,0.35)' },
+      '@keyframes fadeInUp': {
+        '0%': { opacity: 0, transform: 'translateY(15px)' },
+        '100%': { opacity: 1, transform: 'translateY(0)' }
+      }
+    }}>
+      <Box sx={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: gradient, opacity: 0.1, filter: 'blur(15px)' }} />
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+          <Box sx={{ p: 1, borderRadius: 2, background: gradient, color: '#fff', display: 'flex', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
+            {React.cloneElement(icon, { sx: { fontSize: 20 } })}
           </Box>
         </Box>
+        <Typography sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.2 }}>
+          {title}
+        </Typography>
+        <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary' }}>
+          {value}
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <Box sx={{ bgcolor: mainBg, minHeight: '100vh', p: { xs: 2, md: 4 }, m: -3 }}>
+      {/* Header Profile Section */}
+      <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5, letterSpacing: -0.5 }}>
+              {getGreeting()}, <Box component="span" sx={{ color: '#1976D2' }}>{name}</Box>!
+            </Typography>
+            <Typography sx={{ color: 'text.secondary', fontWeight: 500 }}>
+              Here is your daily operational summary.
+            </Typography>
+          </Box>
+        </Box>
+        <Stack direction="row" spacing={2}>
+          <Button variant="contained" startIcon={<Route />} sx={{ borderRadius: 3, textTransform: 'none', px: 3, py: 1, fontWeight: 700, boxShadow: '0 8px 16px rgba(25, 118, 210, 0.3)' }} onClick={() => navigate('/fleet/driver-trips')}>
+            My Trips
+          </Button>
+        </Stack>
       </Box>
 
-      {/* TOP STATS ROW 1 */}
-      <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+      {/* Stats Grid */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}`, borderLeft: '4px solid #1976D2' }}>
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', mb: 1 }}>My Vehicles</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>{totalVehicles}</Typography>
-              <Typography sx={{ color: mutedText, fontSize: '0.75rem' }}>Fleet records visible to me</Typography>
+          <StatCard title="Active Trips" value={activeTrips} icon={<Route />} gradient="linear-gradient(135deg, #1976D2, #42A5F5)" delay={0.1} />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard title="Assigned Vehicles" value={vehicles.length} icon={<DirectionsCar />} gradient="linear-gradient(135deg, #9C27B0, #BA68C8)" delay={0.2} />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard title="Total Advances" value={`₹${totalAdvances.toLocaleString()}`} icon={<AccountBalanceWallet />} gradient="linear-gradient(135deg, #2E7D32, #4CAF50)" delay={0.3} />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard title="Action Required" value={pendingAdvances} icon={<NotificationsActive />} gradient="linear-gradient(135deg, #EF6C00, #FF9800)" delay={0.4} />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={4}>
+        {/* Current Trip Focus */}
+        <Grid item xs={12} md={7} lg={8}>
+          <Card sx={{ bgcolor: cardBg, ...glassEffect, borderRadius: 4, height: '100%', border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.3)' : '0 10px 30px rgba(0,0,0,0.05)' }}>
+            <CardContent sx={{ p: 4 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <TrendingUp color="primary" /> Current Assignment
+                </Typography>
+                {currentTrip && <Chip label={currentTrip.status} color={currentTrip.status === 'ON_TRIP' ? 'success' : 'primary'} sx={{ fontWeight: 700 }} />}
+              </Box>
+
+              {currentTrip ? (
+                <Box>
+                  <Grid container spacing={3} sx={{ mb: 4 }}>
+                    <Grid item xs={12} sm={5}>
+                      <Typography sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.85rem', mb: 0.5, textTransform: 'uppercase' }}>Origin</Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>{currentTrip.origin || currentTrip.startLocation || 'Unknown'}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={2} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <ArrowForward color="disabled" sx={{ fontSize: 32 }} />
+                    </Grid>
+                    <Grid item xs={12} sm={5} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
+                      <Typography sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.85rem', mb: 0.5, textTransform: 'uppercase' }}>Destination</Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>{currentTrip.destination || currentTrip.endLocation || 'Unknown'}</Typography>
+                    </Grid>
+                  </Grid>
+
+                  <Box sx={{ p: 3, borderRadius: 3, bgcolor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(25,118,210,0.04)', border: '1px dashed', borderColor: 'divider' }}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={6} sm={3}>
+                        <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>TRIP NUMBER</Typography>
+                        <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{currentTrip.tripNumber || currentTrip.id?.substring(0, 8)}</Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>VEHICLE ID</Typography>
+                        <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{currentTrip.vehicleId || 'Assigned'}</Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>DISTANCE</Typography>
+                        <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{currentTrip.distance || '0 km'}</Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>EST. ARRIVAL</Typography>
+                        <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>-</Typography>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </Box>
+              ) : (
+                <Box sx={{ py: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
+                  <CheckCircle sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>You are all caught up!</Typography>
+                  <Typography sx={{ color: 'text.secondary' }}>No active trips assigned at the moment.</Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}`, borderLeft: '4px solid #FF9800' }}>
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', mb: 1 }}>My Expenses</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>₹{totalExpenses.toLocaleString()}</Typography>
-              <Typography sx={{ color: mutedText, fontSize: '0.75rem' }}>Expense records visible to me</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}`, borderLeft: '4px solid #4CAF50' }}>
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', mb: 1 }}>My Visible Trips</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>{trips.length}</Typography>
-              <Typography sx={{ color: mutedText, fontSize: '0.75rem' }}>Trip records visible to me</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}`, borderLeft: '4px solid #F44336' }}>
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', mb: 1 }}>My Attention</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>{maintenanceVehicles}</Typography>
-              <Typography sx={{ color: mutedText, fontSize: '0.75rem' }}>Action items visible to me</Typography>
+
+        {/* Quick Links / Status */}
+        <Grid item xs={12} md={5} lg={4}>
+          <Card sx={{ bgcolor: cardBg, ...glassEffect, borderRadius: 4, height: '100%', border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.3)' : '0 10px 30px rgba(0,0,0,0.05)' }}>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AccessTime color="primary" /> Recent Activity
+              </Typography>
+              
+              <Stack spacing={3}>
+                {trips.slice(0, 4).map((t, i) => (
+                  <Box key={i} sx={{ display: 'flex', gap: 2, alignItems: 'center', p: 2, borderRadius: 3, transition: 'all 0.2s', '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' } }}>
+                    <Box sx={{ width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: t.status === 'ON_TRIP' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(25, 118, 210, 0.1)', color: t.status === 'ON_TRIP' ? '#4CAF50' : '#1976D2' }}>
+                      <LocalShipping />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: 'text.primary' }}>{t.origin || 'Start'} to {t.destination || 'End'}</Typography>
+                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 600 }}>{t.tripNumber || t.id?.substring(0,8)} • {t.status}</Typography>
+                    </Box>
+                  </Box>
+                ))}
+                {trips.length === 0 && (
+                  <Typography sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>No recent activity to show.</Typography>
+                )}
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
-
-
-
-      {/* WORKLOAD CHART */}
-      <Card sx={{ bgcolor: cardBg, borderRadius: 1.5, mb: 3, border: `1px solid ${borderColor}`, boxShadow: 'none' }}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.5 }}>My workload chart</Typography>
-          <Typography sx={{ color: mutedText, fontSize: '0.8rem', mb: 4 }}>Only my visible / assigned records are counted.</Typography>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Trips */}
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Trips</Typography>
-                <Typography sx={{ fontWeight: 800 }}>{trips.length}</Typography>
-              </Box>
-              <Box sx={{ width: '100%', height: 10, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderRadius: 5 }}>
-                <Box sx={{ width: '100%', height: '100%', bgcolor: '#1976D2', borderRadius: 5 }} />
-              </Box>
-            </Box>
-
-            {/* Maintenance */}
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Maintenance</Typography>
-                <Typography sx={{ fontWeight: 800 }}>{maintenanceVehicles}</Typography>
-              </Box>
-              <Box sx={{ width: '100%', height: 10, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderRadius: 5 }}>
-                <Box sx={{ width: maintenanceVehicles > 0 ? '40%' : '0%', height: '100%', bgcolor: '#1976D2', borderRadius: 5 }} />
-              </Box>
-            </Box>
-
-            {/* Repairs */}
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Repairs</Typography>
-                <Typography sx={{ fontWeight: 800 }}>0</Typography>
-              </Box>
-              <Box sx={{ width: '100%', height: 10, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderRadius: 5 }}>
-                <Box sx={{ width: '0%', height: '100%', bgcolor: '#1976D2', borderRadius: 5 }} />
-              </Box>
-            </Box>
-
-            {/* Attention */}
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Attention</Typography>
-                <Typography sx={{ fontWeight: 800 }}>{maintenanceVehicles > 0 ? maintenanceVehicles : 4}</Typography>
-              </Box>
-              <Box sx={{ width: '100%', height: 10, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderRadius: 5 }}>
-                <Box sx={{ width: '80%', height: '100%', bgcolor: '#1976D2', borderRadius: 5 }} />
-              </Box>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-      
-
     </Box>
   );
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Button, Stack, Card, CircularProgress, Chip, Snackbar, Alert,
   Table, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Grid,
-  Select, MenuItem, FormControl, TextField, InputAdornment
+  Select, MenuItem, FormControl, TextField, InputAdornment, useTheme
 } from '@mui/material';
 import DynamicFeedIcon from '@mui/icons-material/DynamicFeed';
 import ViewListIcon from '@mui/icons-material/ViewList';
@@ -16,6 +16,8 @@ import * as XLSX from 'xlsx';
 import { dispatchService, tripService } from '../../services/api';
 
 export default function DispatchBoardPage() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [loading, setLoading] = useState(true);
   const [boardData, setBoardData] = useState(null);
   const [viewMode, setViewMode] = useState('KANBAN');
@@ -238,7 +240,7 @@ export default function DispatchBoardPage() {
                             <TableCell><Chip label={t.tripType || 'TRANSFER'} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /></TableCell>
                             <TableCell>{t.originName} &rarr; {t.destinationName}</TableCell>
                             <TableCell>{t.plannedStartAt ? new Date(t.plannedStartAt).toLocaleString() : '—'}</TableCell>
-                            <TableCell><Chip label={t.status} size="small" sx={{ bgcolor: '#f1f5f9', color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem' }} /></TableCell>
+                            <TableCell><Chip label={t.status} size="small" sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem' }} /></TableCell>
                           </TableRow>
                         ))}
                         {unassignedTrips.length === 0 && (
@@ -255,7 +257,7 @@ export default function DispatchBoardPage() {
                             <TableCell>{d.mobile}</TableCell>
                             <TableCell>{d.licenseNumber}</TableCell>
                             <TableCell>{d.experienceYears ? `${d.experienceYears} yrs` : '—'}</TableCell>
-                            <TableCell><Chip label="Ready" size="small" sx={{ bgcolor: '#d1fae5', color: '#10b981', fontWeight: 700, fontSize: '0.7rem' }} /></TableCell>
+                            <TableCell><Chip label="Ready" size="small" sx={{ bgcolor: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5', color: isDark ? '#34d399' : '#10b981', fontWeight: 700, fontSize: '0.7rem' }} /></TableCell>
                           </TableRow>
                         ))}
                         {availableDrivers.length === 0 && (
@@ -272,7 +274,7 @@ export default function DispatchBoardPage() {
                             <TableCell><Chip label={v.vehicleType} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /></TableCell>
                             <TableCell>{v.brand} {v.model}</TableCell>
                             <TableCell>{v.currentOdometer} km</TableCell>
-                            <TableCell><Chip label="Ready" size="small" sx={{ bgcolor: '#dbeafe', color: '#3b82f6', fontWeight: 700, fontSize: '0.7rem' }} /></TableCell>
+                            <TableCell><Chip label="Ready" size="small" sx={{ bgcolor: isDark ? 'rgba(59,130,246,0.2)' : '#dbeafe', color: isDark ? '#60a5fa' : '#3b82f6', fontWeight: 700, fontSize: '0.7rem' }} /></TableCell>
                           </TableRow>
                         ))}
                         {availableVehicles.length === 0 && (
@@ -286,17 +288,17 @@ export default function DispatchBoardPage() {
                         {unavailableDrivers.map(u => (
                           <TableRow key={`drv-${u.driver.id}`} hover>
                             <TableCell sx={{ fontWeight: 600 }}>{u.driver.name}</TableCell>
-                            <TableCell><Chip label="Driver" size="small" sx={{ bgcolor: '#f1f5f9', fontSize: '0.7rem' }} /></TableCell>
+                            <TableCell><Chip label="Driver" size="small" sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', fontSize: '0.7rem' }} /></TableCell>
                             <TableCell>{u.driver.mobile}</TableCell>
-                            <TableCell><Chip label={u.reason} size="small" sx={{ bgcolor: '#fee2e2', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem' }} /></TableCell>
+                            <TableCell><Chip label={u.reason} size="small" sx={{ bgcolor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#f87171' : '#ef4444', fontWeight: 700, fontSize: '0.7rem' }} /></TableCell>
                           </TableRow>
                         ))}
                         {unavailableVehicles.map(u => (
                           <TableRow key={`veh-${u.vehicle.id}`} hover>
                             <TableCell sx={{ fontWeight: 600 }}>{u.vehicle.vehicleNumber}</TableCell>
-                            <TableCell><Chip label="Vehicle" size="small" sx={{ bgcolor: '#f1f5f9', fontSize: '0.7rem' }} /></TableCell>
+                            <TableCell><Chip label="Vehicle" size="small" sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', fontSize: '0.7rem' }} /></TableCell>
                             <TableCell>{u.vehicle.brand} {u.vehicle.model}</TableCell>
-                            <TableCell><Chip label={u.reason} size="small" sx={{ bgcolor: '#fee2e2', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem' }} /></TableCell>
+                            <TableCell><Chip label={u.reason} size="small" sx={{ bgcolor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#f87171' : '#ef4444', fontWeight: 700, fontSize: '0.7rem' }} /></TableCell>
                           </TableRow>
                         ))}
                         {(unavailableDrivers.length === 0 && unavailableVehicles.length === 0) && (
@@ -309,9 +311,9 @@ export default function DispatchBoardPage() {
               </Box>
             </Card>
           ) : (
-            <Grid container spacing={4} sx={{ flexGrow: 1, alignItems: 'stretch', maxHeight: 'calc(100vh - 180px)', overflow: 'hidden' }}>
+            <Grid container spacing={4} sx={{ flexGrow: 1, alignItems: 'stretch', maxHeight: 'calc(100vh - 180px)', p: 3, overflow: 'hidden' }}>
               <Grid item xs={12} md={4} sx={{ height: '100%' }}>
-                <Box sx={{ p: 3, bgcolor: '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ pt: 1, px: 3, pb: 3, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 3, display: 'flex', flexDirection: 'column' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
                     <DynamicFeedIcon sx={{ color: '#f59e0b' }} />
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>Trips</Typography>
@@ -335,7 +337,7 @@ export default function DispatchBoardPage() {
                       >
                         <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{t.tripNumber}</Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 1.5, lineHeight: 1.5 }}>{t.originName} &rarr; {t.destinationName}</Typography>
-                        <Chip label={t.plannedStartAt ? new Date(t.plannedStartAt).toLocaleString() : 'No date'} size="small" sx={{ fontWeight: 600, bgcolor: '#f1f5f9', color: 'text.secondary', mb: 1 }} />
+                        <Chip label={t.plannedStartAt ? new Date(t.plannedStartAt).toLocaleString() : 'No date'} size="small" sx={{ fontWeight: 600, bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', color: 'text.secondary', mb: 1 }} />
 
                         {pendingAssignments[t.id] && (
                           <Stack spacing={1} mt={1}>
@@ -374,11 +376,11 @@ export default function DispatchBoardPage() {
               </Grid>
 
               <Grid item xs={12} md={4} sx={{ height: '100%' }}>
-                <Box sx={{ p: 3, bgcolor: '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ pt: 1, px: 3, pb: 3, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 3, display: 'flex', flexDirection: 'column' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
                     <PersonIcon sx={{ color: '#4f46e5' }} />
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>Drivers</Typography>
-                    <Chip label={`${driversReady} ready`} size="small" sx={{ bgcolor: '#d1fae5', color: '#059669', fontWeight: 700 }} />
+                    <Chip label={`${driversReady} ready`} size="small" sx={{ bgcolor: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5', color: isDark ? '#34d399' : '#059669', fontWeight: 700 }} />
                   </Box>
                   <Typography variant="body2" color="text.secondary" mb={2}>Drag a driver onto a trip</Typography>
                   <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 1 }}>
@@ -387,30 +389,30 @@ export default function DispatchBoardPage() {
                         key={d.id}
                         draggable
                         onDragStart={(e) => { e.dataTransfer.setData('driver', JSON.stringify(d)); }}
-                        sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'grab', borderLeft: '5px solid #4f46e5', transition: 'all 0.2s', overflow: 'hidden', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}
+                        sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'grab', borderLeft: '5px solid #4f46e5', transition: 'all 0.2s', overflow: 'hidden', bgcolor: 'background.paper', '&:hover': { transform: 'translateY(-2px)', boxShadow: isDark ? '0 10px 15px -3px rgba(0,0,0,0.5)' : '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}
                       >
-                        <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: isDark ? 'rgba(79,70,229,0.2)' : '#e0e7ff', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <PersonIcon sx={{ fontSize: 28 }} />
                         </Box>
                         <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
                           <Typography variant="body1" sx={{ fontWeight: 700, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</Typography>
                           <Typography variant="body2" color="text.secondary" display="block" sx={{ lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mt: 0.25 }}>{d.mobile || '—'}</Typography>
                           {d.licenseNumber && <Typography variant="body2" color="text.secondary" display="block" sx={{ lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Lic: {d.licenseNumber}</Typography>}
-                          <Chip label="Ready" size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: '#10b981', bgcolor: '#d1fae5', borderRadius: 1, mt: 1 }} />
+                          <Chip label="Ready" size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: isDark ? '#34d399' : '#10b981', bgcolor: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5', borderRadius: 1, mt: 1 }} />
                         </Box>
                       </Card>
                     ))}
                     {unavailableDrivers.map(u => {
                       const d = u.driver;
                       return (
-                        <Card key={d.id} sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, opacity: 0.6, borderLeft: '5px solid #d1d5db', overflow: 'hidden' }}>
-                          <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#f3f4f6', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Card key={d.id} sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, opacity: 0.6, borderLeft: '5px solid #d1d5db', overflow: 'hidden', bgcolor: 'background.paper' }}>
+                          <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: isDark ? 'rgba(156,163,175,0.2)' : '#f3f4f6', color: isDark ? '#9ca3af' : '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <PersonIcon sx={{ fontSize: 28 }} />
                           </Box>
                           <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
                             <Typography variant="body1" sx={{ fontWeight: 700, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</Typography>
                             <Typography variant="body2" color="text.secondary" display="block" sx={{ lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mt: 0.25 }}>{d.mobile || '—'}</Typography>
-                            <Chip label={u.reason} size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: '#ef4444', bgcolor: '#fee2e2', borderRadius: 1, mt: 1 }} />
+                            <Chip label={u.reason} size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: isDark ? '#f87171' : '#ef4444', bgcolor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', borderRadius: 1, mt: 1 }} />
                           </Box>
                         </Card>
                       );
@@ -423,11 +425,11 @@ export default function DispatchBoardPage() {
               </Grid>
 
               <Grid item xs={12} md={4} sx={{ height: '100%' }}>
-                <Box sx={{ p: 3, bgcolor: '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ pt: 1, px: 3, pb: 3, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc', borderRadius: 3, height: '100%', boxShadow: 3, display: 'flex', flexDirection: 'column' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
                     <LocalShippingIcon sx={{ color: '#db2777' }} />
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>Vehicles</Typography>
-                    <Chip label={`${vehiclesReady} ready`} size="small" sx={{ bgcolor: '#dbeafe', color: '#2563eb', fontWeight: 700 }} />
+                    <Chip label={`${vehiclesReady} ready`} size="small" sx={{ bgcolor: isDark ? 'rgba(59,130,246,0.2)' : '#dbeafe', color: isDark ? '#60a5fa' : '#2563eb', fontWeight: 700 }} />
                   </Box>
                   <Typography variant="body2" color="text.secondary" mb={2}>Drag a vehicle onto a trip</Typography>
                   <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 1 }}>
@@ -436,9 +438,9 @@ export default function DispatchBoardPage() {
                         key={v.id}
                         draggable
                         onDragStart={(e) => { e.dataTransfer.setData('vehicle', JSON.stringify(v)); }}
-                        sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'grab', borderLeft: '5px solid #db2777', transition: 'all 0.2s', overflow: 'hidden', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}
+                        sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'grab', borderLeft: '5px solid #db2777', transition: 'all 0.2s', overflow: 'hidden', bgcolor: 'background.paper', '&:hover': { transform: 'translateY(-2px)', boxShadow: isDark ? '0 10px 15px -3px rgba(0,0,0,0.5)' : '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}
                       >
-                        <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#fce7f3', color: '#db2777', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: isDark ? 'rgba(219,39,119,0.2)' : '#fce7f3', color: isDark ? '#f472b6' : '#db2777', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <LocalShippingIcon sx={{ fontSize: 28 }} />
                         </Box>
                         <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
@@ -448,15 +450,15 @@ export default function DispatchBoardPage() {
                           <Typography variant="body2" color="text.secondary" display="block" sx={{ lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mt: 0.25 }}>
                             {v.vehicleType || '—'} {v.brand ? `· ${v.brand}` : ''} {v.model ? v.model : ''}
                           </Typography>
-                          <Chip label="Ready" size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: '#3b82f6', bgcolor: '#dbeafe', borderRadius: 1, mt: 1 }} />
+                          <Chip label="Ready" size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: isDark ? '#60a5fa' : '#3b82f6', bgcolor: isDark ? 'rgba(59,130,246,0.2)' : '#dbeafe', borderRadius: 1, mt: 1 }} />
                         </Box>
                       </Card>
                     ))}
                     {unavailableVehicles.map(u => {
                       const v = u.vehicle;
                       return (
-                        <Card key={v.id} sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, opacity: 0.6, borderLeft: '5px solid #d1d5db', overflow: 'hidden' }}>
-                          <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#f3f4f6', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Card key={v.id} sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2.5, opacity: 0.6, borderLeft: '5px solid #d1d5db', overflow: 'hidden', bgcolor: 'background.paper' }}>
+                          <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: isDark ? 'rgba(156,163,175,0.2)' : '#f3f4f6', color: isDark ? '#9ca3af' : '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <LocalShippingIcon sx={{ fontSize: 28 }} />
                           </Box>
                           <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
@@ -466,7 +468,7 @@ export default function DispatchBoardPage() {
                             <Typography variant="body2" color="text.secondary" display="block" sx={{ lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mt: 0.25 }}>
                               {v.vehicleType || '—'} {v.brand ? `· ${v.brand}` : ''} {v.model ? v.model : ''}
                             </Typography>
-                            <Chip label={u.reason} size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: '#ef4444', bgcolor: '#fee2e2', borderRadius: 1, mt: 1 }} />
+                            <Chip label={u.reason} size="small" sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, color: isDark ? '#f87171' : '#ef4444', bgcolor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', borderRadius: 1, mt: 1 }} />
                           </Box>
                         </Card>
                       );

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Button, Typography, Chip, Skeleton, useTheme, Alert, Stack, Dialog,
-  DialogTitle, DialogContent, DialogActions, TextField
+  DialogTitle, DialogContent, DialogActions, TextField, MenuItem, TablePagination, InputAdornment, IconButton, Tooltip
 } from '@mui/material';
-import { PlayArrow, Stop, CloudUpload, Refresh, LocationOn, Flag } from '@mui/icons-material';
+import { PlayArrow, Stop, CloudUpload, Refresh, LocationOn, Flag, Search } from '@mui/icons-material';
 import { driverPortalService } from '../../services/api';
 import { StatusChip, PageHeader } from '../components/Common';
 
@@ -20,6 +20,10 @@ export default function DriverTripsPage() {
   const [error, setError] = useState('');
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const [actionDialog, setActionDialog] = useState({ open: false, type: '', tripId: '' });
   const [odometer, setOdometer] = useState('');
@@ -91,13 +95,20 @@ export default function DriverTripsPage() {
     }
   };
 
+  const filtered = trips.filter(t => {
+    const q = search.toLowerCase();
+    const matchQ = !q || (t.tripNumber || t.id || '').toLowerCase().includes(q) || (t.origin || '').toLowerCase().includes(q) || (t.destination || '').toLowerCase().includes(q);
+    const matchStatus = !statusFilter || t.status === statusFilter;
+    return matchQ && matchStatus;
+  });
+  const paged = filtered.slice(page * 10, (page + 1) * 10);
+  const uniqueStatuses = [...new Set(trips.map(t => t.status).filter(Boolean))];
+
   return (
-    <Box sx={{ p: 3, minHeight: '80vh' }}>
-      <PageHeader
-        title="My Trips"
-        subtitle="View and manage your assigned trips, start/stop trips, and upload Proof of Delivery (POD)."
+    <Box sx={{ pt: 1, px: 3, pb: 3, minHeight: '80vh' }}>
+      <PageHeader 
         actions={
-          <Button startIcon={<Refresh />} variant="outlined" onClick={fetchTrips} size="small">
+          <Button startIcon={<Refresh/>} variant="outlined" onClick={fetchTrips} size="small">
             Refresh
           </Button>
         }
@@ -105,44 +116,50 @@ export default function DriverTripsPage() {
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      <Card sx={{ bgcolor: isDark ? '#1E1E1E' : '#FFF', borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
-        <TableContainer>
-          <Table>
+      <Card sx={{ mb: 2, bgcolor: isDark ? '#1E1E1E' : '#FFF', borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ py: 2, pr: 2, pl: 0, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'flex-start', alignItems: { xs: 'stretch', sm: 'center' }, gap: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <TextField placeholder="Search trips…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 18, color: 'text.primary' }} /></InputAdornment> }}
+            sx={{ width: { xs: '100%', sm: 1000 }, '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', '& fieldset': { borderColor: '#3a3a42' } } }} size="small" />
+          <TextField select size="small" label="Status" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }} sx={{ minWidth: 200, width: { xs: '100%', sm: 'auto' } }}>
+            <MenuItem value="">All Statuses</MenuItem>
+            {uniqueStatuses.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+          </TextField>
+        </Box>
+        <TableContainer sx={{ maxHeight: 500, overflowY: 'auto', '&::-webkit-scrollbar': { width: 0, height: 0 } }}>
+          <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>Trip Ref</TableCell>
-                <TableCell>Route</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Planned Departure</TableCell>
-                <TableCell>Planned Arrival</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                {['S.NO', 'Trip Ref', 'Route', 'Type', 'Status', 'Planned Departure', 'Planned Arrival', 'Actions'].map((h, i) => (
+                  <TableCell key={h} align={h === 'Actions' ? 'right' : 'left'} sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{h}</TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 Array.from({ length: 3 }).map((_, idx) => (
                   <TableRow key={idx}>
-                    {Array.from({ length: 7 }).map((_, cIdx) => (
-                      <TableCell key={cIdx}><Skeleton variant="text" /></TableCell>
+                    {Array.from({ length: 8 }).map((_, cIdx) => (
+                      <TableCell key={cIdx} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}><Skeleton variant="text" /></TableCell>
                     ))}
                   </TableRow>
                 ))
-              ) : trips.length === 0 ? (
+              ) : paged.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>
                     <Typography sx={{ py: 4, color: 'text.secondary' }}>No trips assigned to you.</Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                trips.map((trip) => (
-                  <TableRow key={trip.id || trip._id}>
-                    <TableCell>
+                paged.map((trip, i) => (
+                  <TableRow key={trip.id || trip._id} hover sx={{ '&:hover': { backgroundColor: '#1e1e2420' } }}>
+                    <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{page * 10 + i + 1}</TableCell>
+                    <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                         {trip.tripNumber || trip.id || '—'}
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <LocationOn fontSize="small" color="primary" />
                         <Typography variant="body2">{trip.origin || trip.startLocation || '—'}</Typography>
@@ -151,58 +168,45 @@ export default function DriverTripsPage() {
                         <Typography variant="body2">{trip.destination || trip.endLocation || '—'}</Typography>
                       </Stack>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                       <Chip label={trip.tripType || 'TRANSFER'} size="small" variant="outlined" />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                       <StatusChip status={trip.status} />
                     </TableCell>
-                    <TableCell>{fmt(trip.plannedStartAt)}</TableCell>
-                    <TableCell>{fmt(trip.plannedEndAt)}</TableCell>
-                    <TableCell align="right">
+                    <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{fmt(trip.plannedStartAt)}</TableCell>
+                    <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{fmt(trip.plannedEndAt)}</TableCell>
+                    <TableCell align="right" sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
                         {(trip.status === 'SCHEDULED' || trip.status === 'DRAFT') && (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="success"
-                            startIcon={<PlayArrow />}
-                            onClick={() => handleOpenAction('start', trip.id || trip._id)}
-                          >
-                            Start
-                          </Button>
+                          <Tooltip title="Start Trip">
+                            <IconButton size="small" sx={{ color: '#10b981' }} onClick={() => handleOpenAction('start', trip.id || trip._id)}>
+                              <PlayArrow fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         )}
                         {trip.status === 'STARTED' && (
-                          <>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="warning"
-                              startIcon={<Stop />}
-                              onClick={() => handleOpenAction('end', trip.id || trip._id)}
-                            >
-                              End
-                            </Button>
-                          </>
+                          <Tooltip title="End Trip">
+                            <IconButton size="small" sx={{ color: '#f59e0b' }} onClick={() => handleOpenAction('end', trip.id || trip._id)}>
+                              <Stop fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         )}
                         {trip.status === 'COMPLETED' && (
-                          <Button
-                            component="label"
-                            size="small"
-                            variant="outlined"
-                            startIcon={<CloudUpload />}
-                          >
-                            Upload POD
-                            <input
-                              type="file"
-                              hidden
-                              onChange={(e) => {
-                                if (e.target.files?.[0]) {
-                                  handleUploadPod(trip.id || trip._id, e.target.files[0]);
-                                }
-                              }}
-                            />
-                          </Button>
+                          <Tooltip title="Upload POD">
+                            <IconButton size="small" component="label" sx={{ color: '#3b82f6' }}>
+                              <CloudUpload fontSize="small" />
+                              <input
+                                type="file"
+                                hidden
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    handleUploadPod(trip.id || trip._id, e.target.files[0]);
+                                  }
+                                }}
+                              />
+                            </IconButton>
+                          </Tooltip>
                         )}
                       </Stack>
                     </TableCell>
@@ -212,6 +216,8 @@ export default function DriverTripsPage() {
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination component="div" count={filtered.length} page={page} rowsPerPage={10} onPageChange={(_, p) => setPage(p)} rowsPerPageOptions={[10]}
+          sx={{ borderTop: '1px solid', borderColor: 'divider', color: 'text.primary' }} />
       </Card>
 
       {/* Action Dialog (Start / End Trip) */}

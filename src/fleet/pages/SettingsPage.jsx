@@ -32,10 +32,8 @@ export default function SettingsPage() {
 
   return (
     <Box>
-      <PageHeader
-        title="Settings"
-        subtitle="Manage fleet configuration and application preferences"
-        icon={SettingsIcon}
+      <PageHeader 
+        subicon={<SettingsIcon/>}
       />
 
       <Grid container spacing={3}>

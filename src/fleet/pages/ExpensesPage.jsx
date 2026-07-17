@@ -205,7 +205,8 @@ export default function ExpensesPage() {
 
   return (
     <Box>
-      <PageHeader title="Expenses" subtitle="Track and manage operational expenses across your fleet." icon={ReceiptIcon}
+      <PageHeader 
+        subicon={<ReceiptIcon/>}
         action={
           <Stack direction="row" spacing={1}>
             <Tooltip title="Export to Excel"><IconButton onClick={exportToExcel} sx={{ border: '1px solid #3a3a42', borderRadius: 1.5 }}><FileDownloadIcon sx={{ fontSize: 18, color: '#10b981' }} /></IconButton></Tooltip>
@@ -308,7 +309,7 @@ export default function ExpensesPage() {
               <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{editRecord ? 'EditOutlined expense' : 'Add expense'}</Typography>
               <IconButton size="small" onClick={closeForm}><CloseIcon sx={{ color: 'text.primary' }} fontSize="small" /></IconButton>
             </Stack>
-            <Box sx={{ p: 3 }}>
+            <Box sx={{ pt: 1, px: 3, pb: 3 }}>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}><TextField fullWidth label="Vehicle ID" name="vehicleId" value={form.vehicleId} onChange={handleFormChange} error={!!errors.vehicleId} helperText={errors.vehicleId} /></Grid>
                 <Grid item xs={12} sm={6}><TextField select fullWidth label="Category" name="category" value={form.category} onChange={handleFormChange}>{EXPENSE_CATEGORIES.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}</TextField></Grid>
@@ -343,7 +344,7 @@ export default function ExpensesPage() {
                 <IconButton size="small" onClick={() => setViewRecord(null)}><CloseIcon sx={{ color: 'text.primary' }} fontSize="small" /></IconButton>
               </Stack>
             </Stack>
-            <Box sx={{ p: 3 }}>
+            <Box sx={{ pt: 1, px: 3, pb: 3 }}>
               <Grid container spacing={2.5}>
                 {[['Vehicle', viewRecord.vehicle?.vehicleNumber || viewRecord.vehicleId || viewRecord.vehicle], ['Category', viewRecord.category], ['Amount', viewRecord.amount ? `₹${Number(viewRecord.amount).toLocaleString()}` : '—'], ['Date', fmtDate(viewRecord.expenseDate || viewRecord.date)], ['Vendor', viewRecord.vendor || '—'], ['Receipt No', viewRecord.receiptNumber || '—'], ['Trip ID', viewRecord.tripId || '—'], ['Driver ID', viewRecord.driverId || '—'], ['Status', viewRecord.status || 'DRAFT']].map(([label, value]) => (
                   <Grid item xs={12} sm={6} key={label}>

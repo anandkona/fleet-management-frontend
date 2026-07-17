@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box, Card, Typography, Table, TableBody, TableCell, TableRow, TableHead,
   Chip, IconButton, CircularProgress, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, Stack, Tooltip, Snackbar, Alert, FormControl, InputLabel, Select, MenuItem, useTheme, useMediaQuery, Grid, Divider
+  DialogActions, TextField, Stack, Tooltip, Snackbar, Alert, FormControl, InputLabel, Select, MenuItem, useTheme, useMediaQuery, Grid, Divider, InputAdornment, TablePagination, TableContainer
 } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -12,43 +12,125 @@ import DownloadIcon from '@mui/icons-material/Download';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import SearchIcon from '@mui/icons-material/Search';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import api, { documentService } from '../../services/api';
-import { ConfirmDialog } from '../components/Common';
+import { ConfirmDialog, PageHeader } from '../components/Common';
 import { useNotification } from '../../contexts/NotificationContext';
 
+const DOC_CATEGORIES = [
+  "VEHICLE", "DRIVER", "TRIP", "COMPLIANCE", "FINANCE", "MAINTENANCE",
+  "REPAIR", "VENDOR", "CUSTOMER", "GENERAL"
+];
 
+const TABS = [
+  { label: 'All', id: 'all' },
+  { label: 'Vehicles', id: 'VEHICLE' },
+  { label: 'Drivers', id: 'DRIVER' },
+  { label: 'Trips', id: 'TRIP' },
+  { label: 'Compliance', id: 'COMPLIANCE' },
+  { label: 'Finance', id: 'FINANCE' },
+  { label: 'Fuel Bills', id: 'FUEL_BILLS' },
+  { label: 'Expiring Soon', id: 'EXPIRING_SOON' },
+  { label: 'Archived', id: 'ARCHIVED' }
+];
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [limit, setLimit] = useState(20);
+
+  const [activeTab, setActiveTab] = useState('all');
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [verifyFilter, setVerifyFilter] = useState('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [viewDialog, setViewDialog] = useState({ open: false, doc: null, fileUrl: null, contentType: null, isLoading: false });
   const [file, setFile] = useState(null);
-  const [form, setForm] = useState({ title: '', category: 'General', documentType: '', notes: '', issueDate: '', expiryDate: '', tags: '', vehicleId: '', driverId: '', tripId: '', customerId: '', vendorId: '', fuelEntryId: '', linkedEntityType: '', linkedEntityId: '' });
+  const [form, setForm] = useState({
+    title: '', category: 'GENERAL', documentType: '', notes: '', issueDate: '', expiryDate: '', tags: '',
+    vehicleId: '', driverId: '', tripId: '', customerId: '', vendorId: '', fuelEntryId: '', linkedEntityType: '', linkedEntityId: ''
+  });
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
   const toast = (msg, severity = 'success') => setSnack({ open: true, msg, severity });
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [deleteDialog, setDeleteDialog] = useState({ open: false, doc: null });
   const { addNotification } = useNotification();
+
+  // Mock global stats
+  const [stats, setStats] = useState({ total: 0, pending: 0, expiring: 0, archived: 0 });
+
+  const fetchGlobalStats = async () => {
+    try {
+      // Fetch a large limit to calculate global stats since there's no stats endpoint
+      const res = await documentService.getAll({ page: 1, limit: 1000 });
+      const allItems = res.data?.data?.items ?? (Array.isArray(res.data?.data) ? res.data.data : []);
+      if (allItems.length > 0) {
+        setStats({
+          total: res.data?.data?.total || allItems.length,
+          pending: allItems.filter(d => d.verificationStatus === 'PENDING').length,
+          expiring: allItems.filter(d => d.expiryDate && new Date(d.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).length,
+          archived: allItems.filter(d => d.status === 'ARCHIVED').length
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch global stats:', err);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/documents', { params: { limit: 100 } });
+      let finalCategory = categoryFilter;
+      let finalStatus = statusFilter;
+      let finalType = typeFilter;
+
+      if (activeTab === 'VEHICLE' || activeTab === 'DRIVER' || activeTab === 'TRIP' || activeTab === 'COMPLIANCE' || activeTab === 'FINANCE') {
+        finalCategory = activeTab;
+      } else if (activeTab === 'FUEL_BILLS') {
+        finalCategory = 'FINANCE';
+        finalType = 'Fuel Bill'; // assuming this string match
+      } else if (activeTab === 'ARCHIVED') {
+        finalStatus = 'ARCHIVED';
+      }
+
+      const params = {
+        page: page + 1,
+        limit,
+        search: search || undefined,
+        documentCategory: finalCategory || undefined,
+        status: finalStatus || undefined,
+        verificationStatus: verifyFilter || undefined
+      };
+
+      const res = await documentService.getAll(params);
       const items = res.data?.data?.items ?? (Array.isArray(res.data?.data) ? res.data.data : []);
       setDocuments(items || []);
+      setTotalCount(res.data?.data?.total || items.length);
     } catch (err) {
       console.error(err);
       setDocuments([]);
     }
     finally { setLoading(false); }
-  }, []);
+  }, [page, limit, search, categoryFilter, statusFilter, verifyFilter, activeTab, typeFilter]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { fetchData(); fetchGlobalStats(); }, [fetchData]);
+
+  // Derived unique types for filter
+  const uniqueTypes = useMemo(() => {
+    const types = new Set(documents.map(d => d.documentType).filter(Boolean));
+    return [...types];
+  }, [documents]);
 
   const handleUpload = async () => {
     if (!file) { toast('Please select a file to upload', 'warning'); return; }
+    if (!form.title || !form.category || !form.documentType) {
+      toast('Title, Category, and Document Type are required', 'warning'); return;
+    }
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -68,19 +150,15 @@ export default function DocumentsPage() {
       if (form.linkedEntityType) formData.append('linkedEntityType', form.linkedEntityType);
       if (form.linkedEntityId) formData.append('linkedEntityId', form.linkedEntityId);
 
-      try {
-        await documentService.upload(formData);
-        fetchData();
-      } catch (err) {
-        throw err;
-      }
+      await documentService.upload(formData);
+      fetchData();
       toast('Document uploaded successfully');
       addNotification('Document Uploaded', `Successfully uploaded ${form.title || file.name}`, 'success');
-      setOpenDialog(false); setFile(null); setForm({ title: '', category: 'General', documentType: '', notes: '', issueDate: '', expiryDate: '', tags: '', vehicleId: '', driverId: '', tripId: '', customerId: '', vendorId: '', fuelEntryId: '', linkedEntityType: '', linkedEntityId: '' });
+      setOpenDialog(false); setFile(null);
+      setForm({ title: '', category: 'GENERAL', documentType: '', notes: '', issueDate: '', expiryDate: '', tags: '', vehicleId: '', driverId: '', tripId: '', customerId: '', vendorId: '', fuelEntryId: '', linkedEntityType: '', linkedEntityId: '' });
     } catch (err) {
       console.error(err);
       toast('Failed to upload document', 'error');
-      addNotification('Upload Failed', `Failed to upload ${form.title || file?.name || 'document'}`, 'error');
     }
   };
 
@@ -88,38 +166,46 @@ export default function DocumentsPage() {
     const doc = deleteDialog.doc;
     if (!doc) return;
     try {
-      await api.delete(`/documents/${doc.id || doc._id}`);
+      await documentService.delete(doc.id || doc._id);
       fetchData();
       toast('Document deleted successfully');
+      addNotification('Document Deleted', `Deleted document ${doc.title || doc.name}`, 'warning');
     } catch (err) {
       console.error(err);
       toast('Failed to delete document', 'error');
     }
-    addNotification('Document Deleted', `Deleted document ${doc.title || doc.name}`, 'warning');
     setDeleteDialog({ open: false, doc: null });
   };
 
-  const handleAction = async (id, action) => {
+  const handleVerify = async (id, status) => {
     try {
-      const payload = action === 'verify' ? { verificationStatus: 'VERIFIED' } : undefined;
-      await api.post(`/documents/${id}/${action}`, payload);
-      toast(`Document ${action}d successfully`);
-      addNotification(`Document ${action.charAt(0).toUpperCase() + action.slice(1)}d`, `Successfully ${action}d document`, 'success');
+      await documentService.verify(id, { verificationStatus: status });
+      toast(`Document ${status} successfully`);
       fetchData();
     } catch (err) {
       console.error(err);
-      toast(`Failed to ${action} document`, 'error');
-      addNotification('Error', `Failed to ${action} document`, 'error');
+      toast(`Failed to ${status.toLowerCase()} document`, 'error');
+    }
+  };
+
+  const handleArchive = async (id) => {
+    try {
+      await documentService.archive(id);
+      toast('Document archived successfully');
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      toast('Failed to archive document', 'error');
     }
   };
 
   const handleDownload = async (doc) => {
     try {
       const id = doc.id || doc._id;
-      const res = await api.get(`/documents/${id}/download`);
-      const url = res.data?.data?.url;
+      const res = await documentService.getDownloadUrl(id);
+      const url = res.data?.data?.url || res.data?.url;
       if (!url) throw new Error("No download URL returned");
-      
+
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('target', '_blank');
@@ -134,13 +220,13 @@ export default function DocumentsPage() {
     setViewDialog({ open: true, doc, fileUrl: null, contentType: null, isLoading: true });
     try {
       const id = doc.id || doc._id;
-      const res = await api.get(`/documents/${id}/download`);
-      const url = res.data?.data?.url;
-      if (!url) throw new Error("No download URL returned");
-      
+      const res = await documentService.getViewUrl(id);
+      const url = res.data?.data?.url || res.data?.url;
+      if (!url) throw new Error("No view URL returned");
+
       const filename = doc.originalFileName || doc.filename || doc.title || '';
       let contentType = doc.mimeType || 'application/pdf';
-      
+
       if (filename.match(/\.(jpg|jpeg)$/i)) contentType = 'image/jpeg';
       else if (filename.match(/\.png$/i)) contentType = 'image/png';
       else if (filename.match(/\.pdf$/i)) contentType = 'application/pdf';
@@ -156,104 +242,270 @@ export default function DocumentsPage() {
     if (!s) return 'default';
     const up = s.toUpperCase();
     if (up === 'VERIFIED' || up === 'ACTIVE') return 'success';
-    if (up === 'PENDING_VERIFICATION' || up === 'PENDING') return 'warning';
-    if (up === 'ARCHIVED' || up === 'EXPIRED') return 'error';
+    if (up === 'PENDING' || up === 'PENDING_VERIFICATION') return 'warning';
+    if (up === 'REJECTED' || up === 'ARCHIVED' || up === 'EXPIRED') return 'error';
     return 'default';
   };
 
+  const formatLinkedTo = (doc) => {
+    if (doc.vehicleId) return doc.vehicleId;
+    if (doc.driverId) return doc.driverId;
+    if (doc.tripId) return doc.tripId;
+    if (doc.customerId) return doc.customerId;
+    if (doc.vendorId) return doc.vendorId;
+    return '--';
+  };
+
+  const formatExpiry = (dateStr) => {
+    if (!dateStr) return '--';
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diffTime = Math.abs(d - now);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    let label = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    let daysLeft = '';
+
+    if (d > now && diffDays <= 30) {
+      daysLeft = `${diffDays}d left`;
+    }
+
+    return { label, daysLeft };
+  };
+
+
+
   return (
-    <Box>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'flex-end', mb: 3, gap: 2 }}>
-        <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
-          {isMobile ? (
-            <Button variant="contained" onClick={() => setOpenDialog(true)} sx={{ backgroundColor: '#1976d2', '&:hover': { backgroundColor: '#0e3a66' }, minWidth: 40, width: 40, height: 40, borderRadius: 1, p: 0 }}>
-              <AddIcon />
-            </Button>
-          ) : (
-            <Button variant="contained" startIcon={<CloudUploadIcon />} onClick={() => setOpenDialog(true)}
-              sx={{ backgroundColor: '#1976d2', '&:hover': { backgroundColor: '#0e3a66' } }}>Upload Document</Button>
-          )}
-        </Box>
+    <Box sx={{ pb: 4 }}>
+      <PageHeader />
+
+      {/* Summary Cards */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2, mb: 3 }}>
+        <Card sx={{ p: 2, bgcolor: '#f8fafc', boxShadow: 'none', border: '1px solid #e2e8f0' }}>
+          <Typography sx={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600, mb: 1 }}>Total Documents</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#0f172a' }}>{stats.total}</Typography>
+        </Card>
+        <Card sx={{ p: 2, bgcolor: '#fffbeb', boxShadow: 'none', border: '1px solid #fef3c7' }}>
+          <Typography sx={{ color: '#b45309', fontSize: '0.8rem', fontWeight: 600, mb: 1 }}>Pending Verification</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#d97706' }}>{stats.pending}</Typography>
+        </Card>
+        <Card sx={{ p: 2, bgcolor: '#fef2f2', boxShadow: 'none', border: '1px solid #fee2e2' }}>
+          <Typography sx={{ color: '#b91c1c', fontSize: '0.8rem', fontWeight: 600, mb: 1 }}>Expiring Soon</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#ef4444' }}>{stats.expiring}</Typography>
+        </Card>
+        <Card sx={{ p: 2, bgcolor: '#f8fafc', boxShadow: 'none', border: '1px solid #e2e8f0' }}>
+          <Typography sx={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600, mb: 1 }}>Archived</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#0f172a' }}>{stats.archived}</Typography>
+        </Card>
       </Box>
 
-      <Card sx={{ p: 0, overflowX: 'auto', maxHeight: 500, overflowY: 'auto', '&::-webkit-scrollbar': { width: 0, height: 0 } }}>
-        {loading ? <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Box> : (
-          <Table size="small" stickyHeader>
+      {/* Main Content Area */}
+      <Card sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}>
+
+        {/* Quick Filter Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, pt: 1, overflowX: 'auto', display: 'flex', gap: 2, '&::-webkit-scrollbar': { display: 'none' } }}>
+          {TABS.map(tab => (
+            <Box
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id); setPage(0); }}
+              sx={{
+                py: 1.5,
+                px: 1,
+                cursor: 'pointer',
+                fontWeight: activeTab === tab.id ? 600 : 500,
+                color: activeTab === tab.id ? 'primary.main' : 'text.secondary',
+                borderBottom: activeTab === tab.id ? '2px solid' : '2px solid transparent',
+                borderColor: activeTab === tab.id ? 'primary.main' : 'transparent',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s'
+              }}
+            >
+              {tab.label}
+            </Box>
+          ))}
+        </Box>
+
+        {/* Filter Bar */}
+        <Box sx={{ p: 2, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <TextField
+            placeholder="Search documents..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment> }}
+            sx={{ flex: 1, minWidth: 250, '& .MuiOutlinedInput-root': { bgcolor: 'background.default', borderRadius: 1.5, '& fieldset': { borderColor: 'divider' } } }}
+            size="small"
+          />
+
+          <TextField select size="small" label="All Categories" value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(0); }} sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { bgcolor: 'background.default', borderRadius: 1.5 } }}>
+            <MenuItem value="">All Categories</MenuItem>
+            {DOC_CATEGORIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+          </TextField>
+
+          <TextField select size="small" label="All Types" value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(0); }} sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { bgcolor: 'background.default', borderRadius: 1.5 } }}>
+            <MenuItem value="">All Types</MenuItem>
+            {uniqueTypes.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+          </TextField>
+
+          <TextField select size="small" label="All Statuses" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }} sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { bgcolor: 'background.default', borderRadius: 1.5 } }}>
+            <MenuItem value="">All Statuses</MenuItem>
+            <MenuItem value="ACTIVE">ACTIVE</MenuItem>
+            <MenuItem value="ARCHIVED">ARCHIVED</MenuItem>
+          </TextField>
+
+          <TextField select size="small" label="All Verification" value={verifyFilter} onChange={(e) => { setVerifyFilter(e.target.value); setPage(0); }} sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { bgcolor: 'background.default', borderRadius: 1.5 } }}>
+            <MenuItem value="">All Verification</MenuItem>
+            <MenuItem value="PENDING">PENDING</MenuItem>
+            <MenuItem value="VERIFIED">VERIFIED</MenuItem>
+            <MenuItem value="REJECTED">REJECTED</MenuItem>
+          </TextField>
+
+          <Button
+            variant="contained"
+            startIcon={<CloudUploadIcon />}
+            onClick={() => setOpenDialog(true)}
+            sx={{
+              borderRadius: 1.5,
+              px: 3,
+              textTransform: 'none',
+              fontWeight: 600,
+              bgcolor: 'rgba(10, 114, 179, 0.87)',
+              '&:hover': { bgcolor: '#188be9ff' }
+            }}
+          >
+            Upload
+          </Button>
+        </Box>
+
+        {/* Table */}
+        <TableContainer sx={{ width: '100%', overflowX: 'auto', minHeight: 300, maxHeight: 300, overflowY: 'auto', '&::-webkit-scrollbar': { width: 0, height: 0 } }}>
+          <Table size="medium" stickyHeader sx={{ minWidth: 1000 }}>
             <TableHead>
               <TableRow>
-                {['S.NO', 'Title', 'Description', 'Type', 'Category', 'Actions'].map(h => (
-                  <TableCell key={h} sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{h}</TableCell>
-                ))}
+                <TableCell sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2' }}>S.No</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2' }}>Document</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2' }}>Type</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2' }}>Category</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2' }}>Linked To</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2' }}>Verification</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2' }}>Expiry</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2' }}>Uploaded</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', bgcolor: '#1976d2' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {documents.length === 0 ? (
-                <TableRow><TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>No documents uploaded yet</TableCell></TableRow>
-              ) : documents.map((d, i) => (
-                <TableRow key={i} hover sx={{ '&:hover': { backgroundColor: '#1e1e2420' } }}>
-                  <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{i + 1}</TableCell>
-
-                  <TableCell sx={{ fontWeight: 600, fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.title || d.name || '—'}</TableCell>
-                  <TableCell sx={{ fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.description || '—'}</TableCell>
-                  <TableCell sx={{ fontSize: '0.85rem', color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.documentType || '—'}</TableCell>
-                  <TableCell sx={{ fontSize: '0.85rem', borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{d.documentCategory || d.category || '—'}</TableCell>
-
-                  <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
-                    <Stack direction="row" spacing={0.5}>
-                      <Tooltip title="View Details">
-                        <IconButton size="small" color="primary" onClick={() => openView(d)}>
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      {(d.verificationStatus || d.status) !== 'VERIFIED' && <Tooltip title="Verify"><IconButton size="small" onClick={() => handleAction(d.id || d._id, 'verify')}><VerifiedUserIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
-                      <Tooltip title="Download"><IconButton size="small" onClick={() => handleDownload(d)}><DownloadIcon sx={{ fontSize: 17, color: '#3b82f6' }} /></IconButton></Tooltip>
-                      <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteDialog({ open: true, doc: d })} sx={{ color: '#ef4444' }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {loading ? (
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 5 }}><CircularProgress size={32} thickness={4} sx={{ color: 'text.secondary' }} /></TableCell></TableRow>
+              ) : documents.length === 0 ? (
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 5, color: 'text.secondary' }}>No documents found matching the filters.</TableCell></TableRow>
+              ) : (
+                documents.map((row, index) => {
+                  const expiryData = formatExpiry(row.expiryDate);
+                  return (
+                    <TableRow key={row.id || row._id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>{page * limit + index + 1}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>{row.title || row.name || 'Untitled Document'}</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>DOC-{String(row.id || row._id).substring(0, 8).toUpperCase()}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell><Typography variant="body2" sx={{ color: 'text.primary' }}>{row.documentType || 'General'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" sx={{ color: 'text.primary' }}>{row.documentCategory || row.category || 'N/A'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>{formatLinkedTo(row)}</Typography></TableCell>
+                      <TableCell>
+                        {row.verificationStatus === 'VERIFIED' ? (
+                          <Typography variant="body2" sx={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 500 }}>
+                            <VerifiedUserIcon sx={{ fontSize: 16 }} /> Verified
+                          </Typography>
+                        ) : row.verificationStatus === 'PENDING' ? (
+                          <Typography variant="body2" sx={{ color: '#f59e0b', fontWeight: 500 }}>Pending</Typography>
+                        ) : (
+                          <Typography variant="body2" sx={{ color: '#ef4444', fontWeight: 500 }}>{row.verificationStatus || '--'}</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: 'text.primary' }}>{expiryData.label}</Typography>
+                        {expiryData.daysLeft && <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 600 }}>{expiryData.daysLeft}</Typography>}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: 'text.primary' }}>{row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '--'}</Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          <Tooltip title="View"><IconButton size="small" onClick={() => openView(row)} sx={{ color: '#64748b', '&:hover': { color: '#0f172a', bgcolor: '#f1f5f9' } }}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
+                          <Tooltip title="Download"><IconButton size="small" onClick={() => handleDownload(row)} sx={{ color: '#64748b', '&:hover': { color: '#0f172a', bgcolor: '#f1f5f9' } }}><DownloadIcon fontSize="small" /></IconButton></Tooltip>
+                          {(row.verificationStatus !== 'VERIFIED') && (
+                            <Tooltip title="Verify"><IconButton size="small" onClick={() => handleVerify(row.id || row._id, 'VERIFIED')} sx={{ color: '#10b981', '&:hover': { bgcolor: '#ecfdf5' } }}><VerifiedUserIcon fontSize="small" /></IconButton></Tooltip>
+                          )}
+                          {(row.verificationStatus !== 'REJECTED') && (
+                            <Tooltip title="Reject"><IconButton size="small" onClick={() => handleVerify(row.id || row._id, 'REJECTED')} sx={{ color: '#ef4444', '&:hover': { bgcolor: '#fef2f2' } }}><ThumbDownIcon fontSize="small" /></IconButton></Tooltip>
+                          )}
+                          {(row.status !== 'ARCHIVED') && (
+                            <Tooltip title="Archive"><IconButton size="small" onClick={() => handleArchive(row.id || row._id)} sx={{ color: '#f59e0b', '&:hover': { bgcolor: '#fffbeb' } }}><ArchiveIcon fontSize="small" /></IconButton></Tooltip>
+                          )}
+                          <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteDialog({ open: true, doc: row })} sx={{ color: '#ef4444', '&:hover': { bgcolor: '#fef2f2' } }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
             </TableBody>
           </Table>
-        )}
+        </TableContainer>
+        <TablePagination component="div" count={totalCount} rowsPerPage={limit} page={page} onPageChange={(e, newPage) => setPage(newPage)}
+          onRowsPerPageChange={(e) => { setLimit(parseInt(e.target.value, 10)); setPage(0); }}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`}
+        />
       </Card>
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
-        <DialogTitle sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>Upload Document</DialogTitle>
-        <DialogContent sx={{ bgcolor: 'background.paper', pt: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <Button variant="outlined" component="label" sx={{ py: 3, borderStyle: 'dashed', borderColor: '#3a3a42', color: 'text.primary' }}>
-              {file ? file.name : 'Select File'}
-              <input type="file" hidden onChange={e => setFile(e.target.files[0])} />
-            </Button>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-              <TextField label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} fullWidth size="small" />
-              <FormControl fullWidth size="small"><InputLabel>Category</InputLabel>
+      {/* Upload Dialog */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#0f172a' }}>Upload Document</DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <Box sx={{ border: '2px dashed #cbd5e1', borderRadius: 2, p: 4, textAlign: 'center', bgcolor: '#f8fafc', transition: 'all 0.2s', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>
+              <Button variant="outlined" component="label" startIcon={<AddIcon />} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, color: '#0f172a', borderColor: '#cbd5e1' }}>
+                Choose File <input type="file" hidden onChange={e => setFile(e.target.files[0])} accept=".pdf,.jpg,.jpeg,.png,.webp" />
+              </Button>
+              <Typography variant="body2" sx={{ mt: 2, color: '#64748b' }}>
+                {file ? file.name : "PDF, JPEG, PNG up to 10MB"}
+              </Typography>
+            </Box>
+
+            <TextField label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} fullWidth size="medium" required />
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <FormControl fullWidth size="medium" required>
+                <InputLabel>Category</InputLabel>
                 <Select value={form.category} label="Category" onChange={e => setForm({ ...form, category: e.target.value })}>
-                  <MenuItem value="Vehicle">Vehicle Compliance</MenuItem>
-                  <MenuItem value="Driver">Driver Document</MenuItem>
-                  <MenuItem value="Finance">Financial Record</MenuItem>
-                  <MenuItem value="General">General</MenuItem>
+                  {DOC_CATEGORIES.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
                 </Select>
               </FormControl>
-              <TextField label="Document Type (e.g. License, Insurance)" value={form.documentType} onChange={e => setForm({ ...form, documentType: e.target.value })} fullWidth size="small" />
-              <TextField label="Tags (comma separated)" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} fullWidth size="small" />
-              <TextField label="Issue Date" type="date" InputLabelProps={{ shrink: true }} value={form.issueDate} onChange={e => setForm({ ...form, issueDate: e.target.value })} fullWidth size="small" />
-              <TextField label="Expiry Date" type="date" InputLabelProps={{ shrink: true }} value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} fullWidth size="small" />
-              <TextField label="Vehicle ID (Optional)" value={form.vehicleId} onChange={e => setForm({ ...form, vehicleId: e.target.value })} fullWidth size="small" />
-              <TextField label="Driver ID (Optional)" value={form.driverId} onChange={e => setForm({ ...form, driverId: e.target.value })} fullWidth size="small" />
-              <TextField label="Trip ID (Optional)" value={form.tripId} onChange={e => setForm({ ...form, tripId: e.target.value })} fullWidth size="small" />
-              <TextField label="Customer ID (Optional)" value={form.customerId} onChange={e => setForm({ ...form, customerId: e.target.value })} fullWidth size="small" />
-              <TextField label="Vendor ID (Optional)" value={form.vendorId} onChange={e => setForm({ ...form, vendorId: e.target.value })} fullWidth size="small" />
-              <TextField label="Fuel Entry ID (Optional)" value={form.fuelEntryId} onChange={e => setForm({ ...form, fuelEntryId: e.target.value })} fullWidth size="small" />
-              <TextField label="Linked Entity Type (Optional)" value={form.linkedEntityType} onChange={e => setForm({ ...form, linkedEntityType: e.target.value })} fullWidth size="small" />
-              <TextField label="Linked Entity ID (Optional)" value={form.linkedEntityId} onChange={e => setForm({ ...form, linkedEntityId: e.target.value })} fullWidth size="small" />
+              <TextField label="Document Type" placeholder="e.g. License, Insurance" value={form.documentType} onChange={e => setForm({ ...form, documentType: e.target.value })} fullWidth size="medium" required />
             </Box>
-            <TextField label="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} fullWidth size="small" multiline rows={2} />
+
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#0f172a', mt: 1 }}>Linkages (Optional)</Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <TextField label="Vehicle ID" value={form.vehicleId} onChange={e => setForm({ ...form, vehicleId: e.target.value })} size="small" />
+              <TextField label="Driver ID" value={form.driverId} onChange={e => setForm({ ...form, driverId: e.target.value })} size="small" />
+              <TextField label="Trip ID" value={form.tripId} onChange={e => setForm({ ...form, tripId: e.target.value })} size="small" />
+              <TextField label="Fuel Entry ID" value={form.fuelEntryId} onChange={e => setForm({ ...form, fuelEntryId: e.target.value })} size="small" />
+            </Box>
+
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#0f172a', mt: 1 }}>Details</Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <TextField label="Issue Date" type="date" InputLabelProps={{ shrink: true }} value={form.issueDate} onChange={e => setForm({ ...form, issueDate: e.target.value })} size="small" />
+              <TextField label="Expiry Date" type="date" InputLabelProps={{ shrink: true }} value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} size="small" />
+            </Box>
+            <TextField label="Notes/Description" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} fullWidth size="small" multiline rows={2} />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ bgcolor: 'background.paper', p: 2 }}>
-          <Button onClick={() => setOpenDialog(false)} sx={{ color: 'text.primary' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleUpload} sx={{ backgroundColor: '#8b5cf6', '&:hover': { backgroundColor: '#7c3aed' } }}>Upload</Button>
+        <DialogActions sx={{ p: 2.5, bgcolor: '#f8fafc' }}>
+          <Button onClick={() => setOpenDialog(false)} sx={{ color: '#64748b', fontWeight: 600, textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleUpload} sx={{ bgcolor: '#0f172a', fontWeight: 600, textTransform: 'none', px: 3, borderRadius: 1.5, '&:hover': { bgcolor: '#1e293b' } }}>Upload Document</Button>
         </DialogActions>
       </Dialog>
       <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
@@ -269,60 +521,60 @@ export default function DocumentsPage() {
       />
 
       {/* View Details Dialog */}
-      <Dialog open={viewDialog.open} onClose={() => setViewDialog({ open: false, doc: null })} maxWidth="sm" fullWidth>
-        <DialogTitle>Document Details</DialogTitle>
+      <Dialog open={viewDialog.open} onClose={() => setViewDialog({ open: false, doc: null })} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#0f172a' }}>Document Details</DialogTitle>
         <DialogContent dividers>
           {viewDialog.doc && (
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <Typography variant="caption" color="text.secondary">Title</Typography>
-                <Typography variant="body1" fontWeight="bold">{viewDialog.doc.title || viewDialog.doc.name || '—'}</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase' }}>Title</Typography>
+                <Typography variant="body1" fontWeight="bold" color="#0f172a">{viewDialog.doc.title || viewDialog.doc.name || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="text.secondary">Document Type</Typography>
-                <Typography variant="body1">{viewDialog.doc.documentType || '—'}</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase' }}>Document Type</Typography>
+                <Typography variant="body1">{viewDialog.doc.documentType || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="text.secondary">Category</Typography>
-                <Typography variant="body1">{viewDialog.doc.documentCategory || viewDialog.doc.category || '—'}</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase' }}>Category</Typography>
+                <Typography variant="body1">{viewDialog.doc.documentCategory || viewDialog.doc.category || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="text.secondary">Status</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase' }}>Status</Typography>
                 <Typography variant="body1">
                   <Chip label={viewDialog.doc.verificationStatus || viewDialog.doc.documentStatus || viewDialog.doc.status || 'UPLOADED'} size="small" />
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="text.secondary">Uploaded</Typography>
-                <Typography variant="body1">{viewDialog.doc.createdAt ? new Date(viewDialog.doc.createdAt).toLocaleString() : '—'}</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase' }}>Uploaded</Typography>
+                <Typography variant="body1">{viewDialog.doc.createdAt ? new Date(viewDialog.doc.createdAt).toLocaleString() : 'N/A'}</Typography>
               </Grid>
-              
+
               <Grid item xs={12}>
                 <Divider sx={{ my: 1 }} />
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="text.secondary">Issue Date</Typography>
-                <Typography variant="body1">{viewDialog.doc.issueDate ? new Date(viewDialog.doc.issueDate).toLocaleDateString() : '—'}</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase' }}>Issue Date</Typography>
+                <Typography variant="body1">{viewDialog.doc.issueDate ? new Date(viewDialog.doc.issueDate).toLocaleDateString() : 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="text.secondary">Expiry Date</Typography>
-                <Typography variant="body1">{viewDialog.doc.expiryDate ? new Date(viewDialog.doc.expiryDate).toLocaleDateString() : '—'}</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase' }}>Expiry Date</Typography>
+                <Typography variant="body1">{viewDialog.doc.expiryDate ? new Date(viewDialog.doc.expiryDate).toLocaleDateString() : 'N/A'}</Typography>
               </Grid>
 
               <Grid item xs={12}>
-                <Typography variant="caption" color="text.secondary">Description</Typography>
-                <Typography variant="body2" sx={{ bgcolor: 'background.default', p: 1.5, borderRadius: 1, mt: 0.5, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase' }}>Description</Typography>
+                <Typography variant="body2" sx={{ bgcolor: '#f8fafc', p: 1.5, borderRadius: 1.5, mt: 0.5, border: '1px solid', borderColor: '#e2e8f0', color: '#334155' }}>
                   {viewDialog.doc.description || viewDialog.doc.notes || 'No notes provided.'}
                 </Typography>
               </Grid>
-              
+
               <Grid item xs={12}>
                 <Divider sx={{ my: 1 }} />
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>Document Preview</Typography>
-                <Box sx={{ width: '100%', height: '400px', bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', display: 'block', mb: 1 }}>Document Preview</Typography>
+                <Box sx={{ width: '100%', height: '400px', bgcolor: '#f8fafc', border: '1px solid', borderColor: '#e2e8f0', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {viewDialog.isLoading ? (
-                    <CircularProgress />
+                    <CircularProgress size={32} thickness={4} sx={{ color: '#94a3b8' }} />
                   ) : viewDialog.fileUrl ? (
                     viewDialog.contentType?.startsWith('image/') ? (
                       <img src={viewDialog.fileUrl} alt="Document Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
@@ -337,9 +589,9 @@ export default function DocumentsPage() {
             </Grid>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewDialog({ open: false, doc: null, fileUrl: null, contentType: null, isLoading: false })}>Close</Button>
-          <Button variant="contained" onClick={() => { handleDownload(viewDialog.doc); setViewDialog({ open: false, doc: null, fileUrl: null, contentType: null, isLoading: false }); }}>Download</Button>
+        <DialogActions sx={{ p: 2.5, bgcolor: '#f8fafc' }}>
+          <Button onClick={() => setViewDialog({ open: false, doc: null, fileUrl: null, contentType: null, isLoading: false })} sx={{ color: '#64748b', fontWeight: 600, textTransform: 'none' }}>Close</Button>
+          <Button variant="contained" onClick={() => { handleDownload(viewDialog.doc); setViewDialog({ open: false, doc: null, fileUrl: null, contentType: null, isLoading: false }); }} sx={{ bgcolor: '#0f172a', fontWeight: 600, textTransform: 'none', px: 3, borderRadius: 1.5, '&:hover': { bgcolor: '#1e293b' } }}>Download</Button>
         </DialogActions>
       </Dialog>
     </Box>

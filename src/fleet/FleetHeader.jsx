@@ -21,7 +21,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { 
-  DarkMode, LightMode, Info, CheckCircle, Warning, Error as ErrorIcon
+  DarkMode, LightMode, Info, CheckCircle, Warning, Error as ErrorIcon, AccountCircle as AccountCircleIcon
 } from '@mui/icons-material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
@@ -228,6 +228,9 @@ function FleetHeader({ handleDrawerToggle }) {
 
         <IconButton onClick={() => navigate('/settings', { replace: true })} sx={{ border: '1px solid', borderColor: 'divider', p: { xs: '6px', sm: '8px' }, borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }, display: { xs: 'none', sm: 'inline-flex' } }}>
           <SettingsIcon sx={{ fontSize: { xs: '18px', sm: '20px' } }} />
+        </IconButton>
+        <IconButton onClick={() => navigate('/profile', { replace: true })} sx={{ border: '1px solid', borderColor: 'divider', p: { xs: '6px', sm: '8px' }, borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }, display: { xs: 'none', sm: 'inline-flex' } }}>
+          <AccountCircleIcon sx={{ fontSize: { xs: '18px', sm: '20px' } }} />
         </IconButton>
       </Box>
     </Box>

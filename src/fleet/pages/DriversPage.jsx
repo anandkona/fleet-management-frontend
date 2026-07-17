@@ -42,7 +42,7 @@ export default function DriversPage() {
   const [form, setForm] = useState({ name: '', mobile: '', alternateMobile: '', address: '', emergencyContact: '', licenseNumber: '', licenseExpiry: '', experience: '', status: 'AVAILABLE', userId: '' });
   const [createTab, setCreateTab] = useState(0);
   const [documents, setDocuments] = useState([]);
-  const [accountForm, setAccountForm] = useState({ create: false, email: '', password: '' });
+  const [accountForm, setAccountForm] = useState({ create: false, email: '', username: '', password: '' });
   const [docCategory, setDocCategory] = useState('License');
   const [viewDocuments, setViewDocuments] = useState([]);
   const [error, setError] = useState('');
@@ -51,7 +51,7 @@ export default function DriversPage() {
   const [deleteDocConfirm, setDeleteDocConfirm] = useState({ open: false, doc: null });
   const [viewVehicles, setViewVehicles] = useState([]);
   const [viewProfileLink, setViewProfileLink] = useState(null);
-  const [linkForm, setLinkForm] = useState({ mode: 'none', email: '', password: '', name: '', userId: '' });
+  const [linkForm, setLinkForm] = useState({ mode: 'none', email: '', username: '', password: '', name: '', userId: '' });
   const [users, setUsers] = useState([]);
   const [stepErrors, setStepErrors] = useState({});
   const { hasPermission } = useAuth();
@@ -98,6 +98,30 @@ export default function DriversPage() {
       setUsers(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) { console.error('Failed to fetch users', err); }
   }, []);
+
+  const checkExistingUserForDriver = async (searchStr, isLinkMode = false) => {
+    if (!searchStr) return;
+    try {
+      const res = await api.get('/users', { params: { search: searchStr } });
+      const items = res.data?.data?.items || res.data?.items || [];
+      const match = items.find(u =>
+        ((isLinkMode ? linkForm.email : accountForm.email) && u.email?.toLowerCase() === (isLinkMode ? linkForm.email : accountForm.email).toLowerCase()) ||
+        ((isLinkMode ? linkForm.username : accountForm.username) && u.username?.toLowerCase() === (isLinkMode ? linkForm.username : accountForm.username).toLowerCase())
+      );
+      if (match) {
+        if (isLinkMode) {
+          setLinkForm(prev => ({ ...prev, mode: 'link', userId: match.id || match._id }));
+        } else {
+          setAccountForm(prev => ({ ...prev, create: false }));
+          setForm(prev => ({ ...prev, userId: match.id || match._id }));
+        }
+        setSnack({ open: true, msg: 'Account already exists. Switched to Link mode and loaded details.', severity: 'info' });
+        fetchUsers();
+      }
+    } catch (err) {
+      console.error('Failed to check existing user:', err);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -177,7 +201,7 @@ export default function DriversPage() {
         const rolesRes = await api.get('/roles');
         const allRoles = rolesRes.data?.data?.items ?? (Array.isArray(rolesRes.data?.data) ? rolesRes.data.data : (Array.isArray(rolesRes.data) ? rolesRes.data : []));
         const driverRole = allRoles.find(r => r.key === 'driver' || r.name === 'Driver');
-        const usernameSlug = accountForm.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '');
+        const usernameSlug = accountForm.username || accountForm.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '');
         const userRes = await api.post('/users', {
           name: form.name,
           email: accountForm.email,
@@ -312,7 +336,7 @@ export default function DriversPage() {
       const rolesRes = await api.get('/roles');
       const allRoles = rolesRes.data?.data?.items ?? (Array.isArray(rolesRes.data?.data) ? rolesRes.data.data : (Array.isArray(rolesRes.data) ? rolesRes.data : []));
       const driverRole = allRoles.find(r => r.key === 'driver' || r.name === 'Driver');
-      const usernameSlug = linkForm.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '');
+      const usernameSlug = linkForm.username || linkForm.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '');
       const userRes = await api.post('/users', {
         name: linkForm.name,
         email: linkForm.email,
@@ -534,11 +558,17 @@ export default function DriversPage() {
                   </Grid>
                   {accountForm.create && (
                     <>
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={12} sm={4}>
+                        <TextField label="Username" value={accountForm.username} onChange={e => setAccountForm({ ...accountForm, username: e.target.value })}
+                          onBlur={() => checkExistingUserForDriver(accountForm.username)}
+                          fullWidth size="small" />
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
                         <TextField label="Email *" value={accountForm.email} onChange={e => setAccountForm({ ...accountForm, email: e.target.value })}
+                          onBlur={() => checkExistingUserForDriver(accountForm.email)}
                           fullWidth size="small" error={Boolean(stepErrors.email)} helperText={stepErrors.email} />
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={12} sm={4}>
                         <TextField label="Password *" type="password" value={accountForm.password} onChange={e => setAccountForm({ ...accountForm, password: e.target.value })}
                           fullWidth size="small" error={Boolean(stepErrors.password)} helperText={stepErrors.password} />
                       </Grid>
@@ -724,7 +754,7 @@ export default function DriversPage() {
                 <Tab label="Linked Account" sx={{ alignItems: { xs: 'center', sm: 'flex-start' }, textAlign: 'left', fontWeight: 600 }} />
                 <Tab label="Vehicle" sx={{ alignItems: { xs: 'center', sm: 'flex-start' }, textAlign: 'left', fontWeight: 600 }} />
               </Tabs>
-              
+
               <Box sx={{ flex: 1, p: 3, overflowY: 'auto' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
                   <Avatar sx={{ width: 64, height: 64, bgcolor: '#1976d2', fontSize: '1.5rem' }}>
@@ -808,9 +838,9 @@ export default function DriversPage() {
                             <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}>
                               <BadgeIcon sx={{ color: '#6b7280', fontSize: 20 }} />
                             </Box>
-                            <Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>License Number *</Typography>
-                              <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{viewDriver.licenseNumber || viewDriver.license_no || '—'}</Typography>
+                              <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary', wordBreak: 'break-all' }}>{viewDriver.licenseNumber || viewDriver.license_no || '—'}</Typography>
                             </Box>
                           </Box>
                         </Grid>
@@ -820,9 +850,9 @@ export default function DriversPage() {
                             <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}>
                               <EventIcon sx={{ color: '#6b7280', fontSize: 20 }} />
                             </Box>
-                            <Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>License Expiry *</Typography>
-                              <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{viewDriver.licenseExpiry || viewDriver.license_expiry ? new Date(viewDriver.licenseExpiry || viewDriver.license_expiry).toLocaleDateString() : '—'}</Typography>
+                              <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary', wordBreak: 'break-word' }}>{viewDriver.licenseExpiry || viewDriver.license_expiry ? new Date(viewDriver.licenseExpiry || viewDriver.license_expiry).toLocaleDateString() : '—'}</Typography>
                             </Box>
                           </Box>
                         </Grid>
@@ -832,9 +862,9 @@ export default function DriversPage() {
                             <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#f3f4f6', display: 'flex' }}>
                               <WorkOutlineIcon sx={{ color: '#6b7280', fontSize: 20 }} />
                             </Box>
-                            <Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>Experience (Years)</Typography>
-                              <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{viewDriver.experienceYears != null ? `${viewDriver.experienceYears} Years` : (viewDriver.experience != null ? `${viewDriver.experience} Years` : '—')}</Typography>
+                              <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary', wordBreak: 'break-word' }}>{viewDriver.experienceYears != null ? `${viewDriver.experienceYears} Years` : (viewDriver.experience != null ? `${viewDriver.experience} Years` : '—')}</Typography>
                             </Box>
                           </Box>
                         </Grid>
@@ -941,18 +971,18 @@ export default function DriversPage() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                           <PeopleIcon sx={{ fontSize: 48, color: '#10b981', opacity: 0.8 }} />
                           <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>{viewProfileLink.user?.name || 'Linked User'}</Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 600, wordBreak: 'break-all' }}>{viewProfileLink.user?.name || 'Linked User'}</Typography>
                             <Chip label="Account Linked" size="small" color="success" sx={{ mt: 0.5, fontSize: '0.65rem', fontWeight: 700 }} />
                           </Box>
                         </Box>
                         <Grid container spacing={2}>
                           <Grid item xs={12} sm={6}>
                             <Typography variant="caption" color="text.secondary">Email</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>{viewProfileLink.user?.email || '—'}</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500, wordBreak: 'break-all' }}>{viewProfileLink.user?.email || '—'}</Typography>
                           </Grid>
                           <Grid item xs={12} sm={6}>
                             <Typography variant="caption" color="text.secondary">User ID</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8rem' }}>{viewProfileLink.userId}</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all' }}>{viewProfileLink.userId}</Typography>
                           </Grid>
                           <Grid item xs={12} sm={6}>
                             <Typography variant="caption" color="text.secondary">Linked On</Typography>
@@ -990,21 +1020,24 @@ export default function DriversPage() {
                         )}
 
                         {linkForm.mode === 'create' && (
-                          <Card variant="outlined" sx={{ p: 3, mt: 2, maxWidth: 400, mx: 'auto', textAlign: 'left' }}>
+                          <Card variant="outlined" sx={{ p: 3, mt: 2, maxWidth: 500, mx: 'auto', textAlign: 'left' }}>
                             <Typography variant="subtitle2" sx={{ mb: 2 }}>Create User Account</Typography>
                             <Grid container spacing={2}>
                               <Grid item xs={12}>
                                 <TextField label="Full Name" value={linkForm.name} onChange={e => setLinkForm({ ...linkForm, name: e.target.value })} fullWidth size="small" />
                               </Grid>
-                              <Grid item xs={12}>
-                                <TextField label="Email" value={linkForm.email} onChange={e => setLinkForm({ ...linkForm, email: e.target.value })} fullWidth size="small" />
+                              <Grid item xs={12} sm={6}>
+                                <TextField label="Username" value={linkForm.username} onChange={e => setLinkForm({ ...linkForm, username: e.target.value })} onBlur={() => checkExistingUserForDriver(linkForm.username, true)} fullWidth size="small" />
+                              </Grid>
+                              <Grid item xs={12} sm={6}>
+                                <TextField label="Email" value={linkForm.email} onChange={e => setLinkForm({ ...linkForm, email: e.target.value })} onBlur={() => checkExistingUserForDriver(linkForm.email, true)} fullWidth size="small" />
                               </Grid>
                               <Grid item xs={12}>
                                 <TextField label="Password" type="password" value={linkForm.password} onChange={e => setLinkForm({ ...linkForm, password: e.target.value })} fullWidth size="small" />
                               </Grid>
                             </Grid>
                             <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'flex-end' }}>
-                              <Button size="small" onClick={() => setLinkForm({ mode: 'none', email: '', password: '', name: '', userId: '' })}>Cancel</Button>
+                              <Button size="small" onClick={() => setLinkForm({ mode: 'none', email: '', username: '', password: '', name: '', userId: '' })}>Cancel</Button>
                               <Button size="small" variant="contained" onClick={handleCreateAndLink} sx={{ bgcolor: '#1976d2' }}>Create & Link</Button>
                             </Box>
                           </Card>

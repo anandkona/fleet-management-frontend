@@ -277,7 +277,8 @@ export default function VehicleOpsPage() {
 
   return (
     <Box>
-      <PageHeader title="Vehicles" subtitle="Manage your fleet vehicles and track their status." icon={DirectionsCarIcon}
+      <PageHeader 
+        subicon={<DirectionsCarIcon/>}
         action={
           <Stack direction="row" spacing={1} sx={{ width: 'auto', flexWrap: 'wrap' }}>
             {hasPermission('vehicle_create') && <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd} size="small" sx={{ borderRadius: 2 }}>Add vehicle</Button>}
@@ -345,7 +346,7 @@ export default function VehicleOpsPage() {
               <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{editRecord ? 'EditOutlined vehicle' : 'Add vehicle'}</Typography>
               <IconButton size="small" onClick={closeForm}><CloseIcon sx={{ color: 'text.primary' }} fontSize="small" /></IconButton>
             </Stack>
-            <Box sx={{ p: 3 }}>
+            <Box sx={{ pt: 1, px: 3, pb: 3 }}>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <TextField fullWidth label="Vehicle Number" value={form.vehicleNumber} onChange={(e) => setForm({ ...form, vehicleNumber: e.target.value })} error={!!errors.vehicleNumber} helperText={errors.vehicleNumber} />
@@ -401,7 +402,7 @@ export default function VehicleOpsPage() {
               </Stack>
               <IconButton size="small" onClick={() => setViewRecord(null)}><CloseIcon sx={{ color: 'text.primary' }} fontSize="small" /></IconButton>
             </Stack>
-            <Box sx={{ p: 3 }}>
+            <Box sx={{ pt: 1, px: 3, pb: 3 }}>
               <Grid container spacing={2.5}>
                 {[
                   ['Vehicle Number', viewRecord.vehicleNumber || viewRecord.licensePlate],

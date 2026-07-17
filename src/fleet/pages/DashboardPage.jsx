@@ -5,9 +5,10 @@ import {
   TableContainer, Divider, useTheme
 } from '@mui/material';
 import {
-  Dashboard as DashboardIcon, TrendingUp, CheckCircleOutline, Sync, ErrorOutline,
+  Dashboard as DashboardIcon, TrendingUp, TrendingDown, MonetizationOn, Payments, Business, People, CheckCircleOutline, Sync, ErrorOutline,
   LocationOn, Opacity, Adjust, BatteryChargingFull, Build
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { alpha } from '@mui/material/styles';
@@ -24,9 +25,11 @@ import DriverDashboard from './DriverDashboard';
 
 export default function DashboardPage() {
   const { permissions, user } = useAuth();
+  const navigate = useNavigate();
   
   const roleName = user?.role?.name || user?.role?.key || user?.role || 'User';
   const isDriver = typeof roleName === 'string' && roleName.toLowerCase() === 'driver';
+  const isAdmin = typeof roleName === 'string' && roleName.toLowerCase().includes('admin');
 
   if (isDriver) {
     return <DriverDashboard />;
@@ -43,6 +46,8 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState([]);
   const [fuel, setFuel] = useState([]);
   const [maintenance, setMaintenance] = useState([]);
+  const [financePnl, setFinancePnl] = useState({});
+  const [financeDashSummary, setFinanceDashSummary] = useState({});
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -52,10 +57,12 @@ export default function DashboardPage() {
         canViewTrips ? api.get('/trips', { params: { limit: 100 } }) : Promise.resolve({ data: [] }),
         api.get('/expenses', { params: { limit: 100 } }).catch(() => ({ data: [] })),
         api.get('/fuel', { params: { limit: 100 } }).catch(() => ({ data: [] })),
-        api.get('/maintenance', { params: { limit: 100 } }).catch(() => ({ data: [] }))
+        api.get('/maintenance', { params: { limit: 100 } }).catch(() => ({ data: [] })),
+        isAdmin ? api.get('/finance/pnl').catch(() => ({ data: {} })) : Promise.resolve({ data: {} }),
+        isAdmin ? api.get('/finance/dashboard-summary').catch(() => ({ data: {} })) : Promise.resolve({ data: {} })
       ];
 
-      const [vRes, tRes, eRes, fRes, mRes] = await Promise.allSettled(fetchPromises);
+      const [vRes, tRes, eRes, fRes, mRes, pnlRes, dSumRes] = await Promise.allSettled(fetchPromises);
 
       const gotVehicles = vRes.status === 'fulfilled' && canViewVehicles ? extractItems(vRes.value) : [];
       const gotTrips = tRes.status === 'fulfilled' && canViewTrips ? extractItems(tRes.value) : [];
@@ -74,6 +81,9 @@ export default function DashboardPage() {
       setExpenses(gotExpenses);
       setFuel(gotFuel);
       setMaintenance(gotMaintenance);
+
+      if (isAdmin && pnlRes.status === 'fulfilled') setFinancePnl(pnlRes.value.data?.data || {});
+      if (isAdmin && dSumRes.status === 'fulfilled') setFinanceDashSummary(dSumRes.value.data?.data || {});
     } catch (err) {
       console.error(err);
       if (canViewVehicles) setVehicles([]);
@@ -81,20 +91,22 @@ export default function DashboardPage() {
       setExpenses([]);
       setFuel([]);
       setMaintenance([]);
+      setFinancePnl({});
+      setFinanceDashSummary({});
     } finally {
       setLoading(false);
     }
-  }, [canViewVehicles, canViewTrips]);
+  }, [canViewVehicles, canViewTrips, isAdmin]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const mainBg = isDark ? '#121212' : theme.palette.background.default;
-  const cardBg = isDark ? '#1E1E1E' : theme.palette.background.paper;
+  const mainBg = isDark ? '#0B0F19' : '#F4F7FC';
+  const cardBg = isDark ? '#111827' : '#FFFFFF';
   const textColor = theme.palette.text.primary;
   const mutedText = theme.palette.text.secondary;
-  const borderColor = theme.palette.divider;
+  const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
   
   const ProgressBar = ({ label, value, max, color, amount }) => (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -127,53 +139,111 @@ export default function DashboardPage() {
 
   const formatAmount = (amt) => amt >= 100000 ? `₹${(amt / 100000).toFixed(2)}L` : `₹${amt.toLocaleString()}`;
 
+  const summaryCards = [
+    { label: 'Total Revenue', value: formatAmount(financePnl.totalRevenue ?? financePnl.revenue ?? financeDashSummary.totalRevenue ?? 0), icon: <TrendingUp />, color: '#10b981', path: '/transactions' },
+    { label: 'Total Expenses', value: formatAmount(financePnl.totalExpenses ?? financePnl.expenses ?? financeDashSummary.totalExpenses ?? 0), icon: <TrendingDown />, color: '#ef4444', path: '/transactions' },
+    { label: 'Net Profit', value: formatAmount(financePnl.netProfit ?? financeDashSummary.netProfit ?? 0), icon: <MonetizationOn />, color: (financePnl.netProfit ?? 0) >= 0 ? '#3b82f6' : '#ef4444', path: '/transactions' },
+    { label: 'Pending Payments', value: formatAmount(financeDashSummary.pendingPayments ?? 0), icon: <Payments />, color: '#f59e0b', path: '/payments' },
+    { label: 'Total Vendors', value: financeDashSummary.totalVendors ?? 0, icon: <Business />, color: '#8b5cf6', isCnt: true, path: '/vendors' },
+    { label: 'Total Customers', value: financeDashSummary.totalCustomers ?? 0, icon: <People />, color: '#06b6d4', isCnt: true, path: '/customers' },
+  ];
+
   return (
     <Box sx={{ bgcolor: mainBg, minHeight: '100vh', p: 1.5, m: -3, color: textColor }}>
       
+      {/* FINANCE KPI CARDS (ADMIN ONLY) */}
+      {isAdmin && (
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          {summaryCards.map(c => (
+            <Grid item xs={12} sm={6} md={2} key={c.label}>
+              <Card 
+                onClick={() => c.path && navigate(c.path)}
+                sx={{ 
+                  bgcolor: cardBg, 
+                  borderRadius: 4, 
+                  color: textColor, 
+                  boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.03)', 
+                  border: `1px solid ${borderColor}`, 
+                  cursor: c.path ? 'pointer' : 'default',
+                  transition: 'transform 0.2s', 
+                  '&:hover': c.path ? { transform: 'translateY(-4px)' } : {}
+                }}
+              >
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{c.label}</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 900, mt: 1, mb: 0.5, color: c.isCnt ? textColor : c.label === 'Net Profit' && (financePnl.netProfit ?? 0) < 0 ? '#ef4444' : textColor }}>
+                    {c.value}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {React.cloneElement(c.icon, { sx: { color: c.color, fontSize: '0.8rem' } })}
+                    <Typography sx={{ color: c.color, fontWeight: 600, fontSize: '0.7rem' }}>Finance</Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+
       {/* TOP STATS ROW */}
-      <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+      <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}` }}>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography sx={{ color: mutedText, fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase' }}>Total Vehicles</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>{totalVehicles}</Typography>
-              <Typography sx={{ color: '#4CAF50', fontWeight: 600, display: 'block', mt: 0.5, fontSize: '0.65rem' }}>Live tracking</Typography>
+          <Card sx={{ bgcolor: cardBg, borderRadius: 4, color: textColor, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.03)', border: `1px solid ${borderColor}`, transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)' } }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Vehicles</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 900, mt: 1, mb: 0.5 }}>{totalVehicles}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <CheckCircleOutline sx={{ color: '#4CAF50', fontSize: '0.8rem' }} />
+                <Typography sx={{ color: '#4CAF50', fontWeight: 600, fontSize: '0.7rem' }}>Live tracking</Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}` }}>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography sx={{ color: mutedText, fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase' }}>Active Now</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: '#1976D2' }}>{activeVehicles}</Typography>
-              <Typography sx={{ color: mutedText, fontWeight: 600, display: 'block', mt: 0.5, fontSize: '0.65rem' }}>{activeUtilization}% utilization</Typography>
+          <Card sx={{ bgcolor: cardBg, borderRadius: 4, color: textColor, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.03)', border: `1px solid ${borderColor}`, transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)' } }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Active Now</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 900, mt: 1, mb: 0.5, background: 'linear-gradient(90deg, #1976D2, #42A5F5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{activeVehicles}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <TrendingUp sx={{ color: mutedText, fontSize: '0.8rem' }} />
+                <Typography sx={{ color: mutedText, fontWeight: 600, fontSize: '0.7rem' }}>{activeUtilization}% utilization</Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}` }}>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography sx={{ color: mutedText, fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase' }}>Maintenance</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: '#FF9800' }}>{maintenanceVehicles}</Typography>
-              <Typography sx={{ color: '#FF9800', fontWeight: 600, display: 'block', mt: 0.5, fontSize: '0.65rem' }}>{maintenanceVehicles > 0 ? 'Requires attention' : 'All clear'}</Typography>
+          <Card sx={{ bgcolor: cardBg, borderRadius: 4, color: textColor, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.03)', border: `1px solid ${borderColor}`, transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)' } }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Maintenance</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 900, mt: 1, mb: 0.5, color: '#FF9800' }}>{maintenanceVehicles}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Build sx={{ color: '#FF9800', fontSize: '0.8rem' }} />
+                <Typography sx={{ color: '#FF9800', fontWeight: 600, fontSize: '0.7rem' }}>{maintenanceVehicles > 0 ? 'Requires attention' : 'All clear'}</Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}` }}>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography sx={{ color: mutedText, fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase' }}>Total Expenses</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>{formatAmount(totalExpenses)}</Typography>
-              <Typography sx={{ color: mutedText, fontWeight: 600, display: 'block', mt: 0.5, fontSize: '0.65rem' }}>Across all categories</Typography>
+          <Card sx={{ bgcolor: cardBg, borderRadius: 4, color: textColor, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.03)', border: `1px solid ${borderColor}`, transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)' } }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Expenses</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 900, mt: 1, mb: 0.5 }}>{formatAmount(totalExpenses)}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Sync sx={{ color: mutedText, fontSize: '0.8rem' }} />
+                <Typography sx={{ color: mutedText, fontWeight: 600, fontSize: '0.7rem' }}>Across all categories</Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ bgcolor: cardBg, borderRadius: 1.5, color: textColor, boxShadow: 'none', border: `1px solid ${borderColor}` }}>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography sx={{ color: mutedText, fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase' }}>Fuel Efficiency</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>{fuelEfficiency}</Typography>
-              <Typography sx={{ color: mutedText, fontWeight: 600, display: 'block', mt: 0.5, fontSize: '0.65rem' }}>{fuelEfficiency !== 'N/A' ? 'km/L' : 'No data'}</Typography>
+          <Card sx={{ bgcolor: cardBg, borderRadius: 4, color: textColor, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.03)', border: `1px solid ${borderColor}`, transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)' } }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography sx={{ color: mutedText, fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Fuel Efficiency</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 900, mt: 1, mb: 0.5 }}>{fuelEfficiency}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Opacity sx={{ color: mutedText, fontSize: '0.8rem' }} />
+                <Typography sx={{ color: mutedText, fontWeight: 600, fontSize: '0.7rem' }}>{fuelEfficiency !== 'N/A' ? 'km/L' : 'No data'}</Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -184,7 +254,7 @@ export default function DashboardPage() {
         {/* LEFT COLUMN */}
         <Grid item xs={12} md={7} lg={8}>
           
-          <Card sx={{ bgcolor: cardBg, borderRadius: 1.5, mb: 1.5, border: `1px solid ${borderColor}`, boxShadow: 'none' }}>
+          <Card sx={{ bgcolor: cardBg, borderRadius: 4, mb: 2, border: `1px solid ${borderColor}`, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.03)' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
                 <Typography sx={{ color: textColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.85rem' }}>
@@ -240,7 +310,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Maintenance Schedule Widget */}
-          <Card sx={{ bgcolor: cardBg, borderRadius: 1.5, border: `1px solid ${borderColor}`, boxShadow: 'none' }}>
+          <Card sx={{ bgcolor: cardBg, borderRadius: 4, border: `1px solid ${borderColor}`, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.03)' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                 <Typography sx={{ color: textColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.85rem' }}>
@@ -271,7 +341,7 @@ export default function DashboardPage() {
         </Grid>
         {/* RIGHT COLUMN */}
         <Grid item xs={12} md={5} lg={4}>
-          <Card sx={{ bgcolor: cardBg, borderRadius: 1.5, mb: 1.5, border: `1px solid ${borderColor}`, boxShadow: 'none' }}>
+          <Card sx={{ bgcolor: cardBg, borderRadius: 4, mb: 2, border: `1px solid ${borderColor}`, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.03)' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                 <Typography sx={{ color: textColor, fontWeight: 700, fontSize: '0.85rem' }}>Asset inventory</Typography>
@@ -314,11 +384,11 @@ export default function DashboardPage() {
               </Grid>
               
               <Box sx={{ mt: 1.5, display: 'flex', gap: 1 }}>
-                <Box sx={{ border: `1px solid ${borderColor}`, borderRadius: 1, px: 1, py: 0.5 }}>
-                  <Typography sx={{ fontSize: '0.65rem', color: textColor }}>Spare parts: <Box component="span" sx={{ fontWeight: 800 }}>342 SKUs</Box></Typography>
+                <Box sx={{ border: `1px solid ${borderColor}`, borderRadius: 2, px: 1.5, py: 0.75, bgcolor: isDark ? '#1C2536' : '#F8FAFC' }}>
+                  <Typography sx={{ fontSize: '0.65rem', color: textColor }}>Spare parts: <Box component="span" sx={{ fontWeight: 800, color: '#1976D2' }}>342 SKUs</Box></Typography>
                 </Box>
-                <Box sx={{ border: `1px solid ${borderColor}`, borderRadius: 1, px: 1, py: 0.5 }}>
-                  <Typography sx={{ fontSize: '0.65rem', color: textColor }}>Tools: <Box component="span" sx={{ fontWeight: 800 }}>89 items</Box></Typography>
+                <Box sx={{ border: `1px solid ${borderColor}`, borderRadius: 2, px: 1.5, py: 0.75, bgcolor: isDark ? '#1C2536' : '#F8FAFC' }}>
+                  <Typography sx={{ fontSize: '0.65rem', color: textColor }}>Tools: <Box component="span" sx={{ fontWeight: 800, color: '#1976D2' }}>89 items</Box></Typography>
                 </Box>
               </Box>
             </CardContent>

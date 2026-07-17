@@ -132,7 +132,7 @@ export default function TripLogsPage() {
   };
 
   const handleDelete = async () => {
-    try { await tripService.delete(deleteId); toast('Trip deleted'); addNotification('Deleted', 'Trip deleted successfully', 'warning'); if (refreshNotifications) refreshNotifications(); setDeleteId(null); fetchData(); }
+    try { await api.delete(`/trips/${deleteId}`); toast('Trip deleted'); addNotification('Deleted', 'Trip deleted successfully', 'warning'); if (refreshNotifications) refreshNotifications(); setDeleteId(null); fetchData(); }
     catch (err) { console.error(err); toast('Error deleting trip', 'error'); addNotification('Error', 'Failed to delete trip', 'error'); }
   };
 
@@ -188,7 +188,7 @@ export default function TripLogsPage() {
 
   return (
     <Box>
-      <PageHeader title="Trips" subtitle={`${filtered.length} trips recorded`} icon={Schedule}
+      <PageHeader 
         action={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
             <Button startIcon={<Add />} onClick={openAdd} variant="contained" sx={{ flex: { xs: 1, sm: 'none' } }}>New Trip</Button>
@@ -258,7 +258,8 @@ export default function TripLogsPage() {
                       {t.status === 'STARTED' && <Tooltip title="Complete Trip"><IconButton size="small" color="warning" onClick={() => openLifecycle(t, 'complete')}><Stop fontSize="small" /></IconButton></Tooltip>}
                       {!['COMPLETED', 'CANCELLED'].includes(t.status) && <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(t)}><Edit sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>}
                       <Tooltip title="View"><IconButton size="small" onClick={() => openHistory(t)}><Visibility sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>
-                      {!['COMPLETED', 'CANCELLED'].includes(t.status) && <Tooltip title="Cancel Trip"><IconButton size="small" onClick={() => openLifecycle(t, 'cancel')}><Cancel sx={{ fontSize: 17, color: '#ef0202ff' }} /></IconButton></Tooltip>}
+                      {!['COMPLETED', 'CANCELLED'].includes(t.status) && <Tooltip title="Cancel Trip"><IconButton size="small" onClick={() => openLifecycle(t, 'cancel')}><Cancel sx={{ fontSize: 17, color: '#f97316' }} /></IconButton></Tooltip>}
+                      <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteId(t.id || t._id)}><Delete sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton></Tooltip>
                     </Stack>
                   </TableCell>
                 </TableRow>
