@@ -78,7 +78,6 @@ const menuConfig = [
       { id: 'driver-submissions', label: 'Driver Submissions', icon: <AssignmentIcon />, permission: 'driver_submission_view' },
       { id: 'advances', label: 'Driver Advances', icon: <MoneyIcon />, permission: 'driver_advance_view' },
       { id: 'settlements', label: 'Driver Settlements', icon: <HandshakeIcon />, permission: 'driver_settlement_view' },
-      { id: 'inventory', label: 'Asset Inventory', icon: <InventoryIcon />, permission: 'asset_view' },
       { id: 'dispatch', label: 'Dispatch Board', icon: <DynamicFeedIcon />, permission: 'dispatch_view' },
       { id: 'compliance-board', label: 'Compliance Board', icon: <FactCheckIcon />, permission: 'compliance_view' }
     ]
@@ -109,6 +108,7 @@ const menuConfig = [
   {
     category: 'SYSTEM',
     items: [
+      { id: 'inventory', label: 'Asset Inventory', icon: <InventoryIcon />, permission: 'asset_view' },
       { id: 'documents', label: 'Documents', icon: <DescriptionIcon />, permission: 'document_metadata_view' },
       { id: 'users', label: 'Users', icon: <ManageAccountsIcon />, permission: 'user_view' },
       { id: 'roles', label: 'Roles & Permissions', icon: <SecurityIcon />, permission: 'role_view' },
