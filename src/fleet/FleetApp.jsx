@@ -41,18 +41,29 @@ const DriverSettlementsPage = lazy(() => import('./pages/DriverSettlementsPage')
 const ComplianceBoardPage = lazy(() => import('./pages/ComplianceBoardPage'));
 const DriverPortalAdvancesPage = lazy(() => import('./pages/DriverPortalAdvancesPage'));
 const DriverPortalSettlementsPage = lazy(() => import('./pages/DriverPortalSettlementsPage'));
+const DriverPortalExpensesPage = lazy(() => import('./pages/DriverPortalExpensesPage'));
+const DriverPortalFuelPage = lazy(() => import('./pages/DriverPortalFuelPage'));
+const DriverPortalIssuesPage = lazy(() => import('./pages/DriverPortalIssuesPage'));
 const AccountsPage = lazy(() => import('./pages/AccountsPage'));
 const CustomersPage = lazy(() => import('./pages/CustomersPage'));
 const FinanceCategoriesPage = lazy(() => import('./pages/FinanceCategoriesPage'));
 const PODBillingChainPage = lazy(() => import('./pages/PODBillingChainPage'));
 const DriverSubmissionsPage = lazy(() => import('./pages/DriverSubmissionsPage'));
 
+// Mechanic Portal Pages
+const MechanicDashboard = lazy(() => import('./pages/MechanicDashboard'));
+const MechanicRepairsPage = lazy(() => import('./pages/MechanicRepairsPage'));
+const MechanicMaintenancePage = lazy(() => import('./pages/MechanicMaintenancePage'));
+const MechanicVehiclesPage = lazy(() => import('./pages/MechanicVehiclesPage'));
+
 const VALID_TABS = [
   'dashboard', 'tracking', 'dispatch', 'vehicle-ops', 'trip-logs', 'drivers', 'inventory', 'maintenance',
-  'repairs', 'expenses', 'fuel', 'finance', 'transactions', 'vendors', 'trip-billing', 'payments', 
+  'repairs', 'expenses', 'fuel', 'finance', 'transactions', 'vendors', 'trip-billing', 'payments',
   'advances', 'settlements', 'compliance-board', 'ai-insights', 'documents', 'users', 'roles', 'settings',
   'driver-dashboard', 'driver-trips', 'driver-documents', 'driver-profile', 'driver-advances', 'driver-settlements',
-  'accounts', 'customers', 'finance-categories', 'pod-billing', 'driver-submissions', 'profile'
+  'driver-expenses', 'driver-fuel', 'driver-issues',
+  'accounts', 'customers', 'finance-categories', 'pod-billing', 'driver-submissions', 'profile',
+  'mechanic-dashboard', 'mechanic-repairs', 'mechanic-maintenance', 'mechanic-documents', 'mechanic-vehicles'
 ];
 
 const pageMap = {
@@ -86,12 +97,20 @@ const pageMap = {
   'compliance-board': ComplianceBoardPage,
   'driver-advances': DriverPortalAdvancesPage,
   'driver-settlements': DriverPortalSettlementsPage,
+  'driver-expenses': DriverPortalExpensesPage,
+  'driver-fuel': DriverPortalFuelPage,
+  'driver-issues': DriverPortalIssuesPage,
   'accounts': AccountsPage,
   'customers': CustomersPage,
   'finance-categories': FinanceCategoriesPage,
   'pod-billing': PODBillingChainPage,
   'driver-submissions': DriverSubmissionsPage,
   'profile': ProfilePage,
+  'mechanic-dashboard': MechanicDashboard,
+  'mechanic-repairs': MechanicRepairsPage,
+  'mechanic-maintenance': MechanicMaintenancePage,
+  'mechanic-documents': DocumentsPage,
+  'mechanic-vehicles': MechanicVehiclesPage
 };
 
 const PageLoader = () => (
@@ -130,11 +149,19 @@ const tabPermissions = {
   'compliance-board': 'compliance_view',
   'driver-advances': 'driver_advance_view_own',
   'driver-settlements': 'driver_settlement_view_own',
+  'driver-expenses': 'driver_expense_view_own',
+  'driver-fuel': 'driver_fuel_view_own',
+  'driver-issues': 'driver_issue_view_own',
   'accounts': 'finance_view',
   'customers': 'finance_view',
   'finance-categories': 'finance_view',
   'pod-billing': 'finance_view',
   'driver-submissions': 'driver_submission_view',
+  'mechanic-dashboard': 'dashboard_view',
+  'mechanic-repairs': 'repair_view',
+  'mechanic-maintenance': 'maintenance_view',
+  'mechanic-documents': 'document_metadata_view',
+  'mechanic-vehicles': 'vehicle_view',
 };
 
 export default function FleetApp() {
@@ -143,7 +170,7 @@ export default function FleetApp() {
   const { user, hasPermission, loading } = useAuth();
   const roleName = (user?.role && typeof user.role === 'object')
     ? (user.role.key || user.role.name || '')
-    : (typeof user?.role === 'string' && (user.role.includes(' ') || user.role.includes('_')) ? user.role : '');
+    : (typeof user?.role === 'string' ? user.role : '');
   const roleLabel = roleName ? String(roleName).toLowerCase().replace(/_/g, ' ') : '';
 
   const activeTab = VALID_TABS.includes(tab) ? tab : 'dashboard';
@@ -153,8 +180,29 @@ export default function FleetApp() {
     if (loading) return;
 
     const isDriverTab = activeTab.startsWith('driver-') && activeTab !== 'driver-submissions';
+
+    // Strict redirect for non-drivers trying to access driver portal pages
     if (isDriverTab && roleLabel !== 'driver') {
       navigate('/dashboard', { replace: true });
+      return;
+    }
+
+    // Strict redirect for non-mechanics trying to access mechanic portal pages
+    if (activeTab.startsWith('mechanic-') && roleLabel !== 'mechanic') {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
+    // Strict redirect for mechanics trying to access non-mechanic portal pages
+    const isMechanicTab = activeTab.startsWith('mechanic-');
+    if (roleLabel === 'mechanic' && !isMechanicTab && activeTab !== 'profile' && activeTab !== 'settings') {
+      navigate('/mechanic-dashboard', { replace: true });
+      return;
+    }
+
+    // Redirect finance users to their specific dashboard instead of the generic one
+    if (roleLabel === 'finance' && activeTab === 'dashboard') {
+      navigate('/finance', { replace: true });
       return;
     }
 
@@ -162,7 +210,6 @@ export default function FleetApp() {
     if (requiredPermission && !hasPermission(requiredPermission)) {
       // Find the first tab they do have permission for
       const firstAllowedTab = Object.keys(tabPermissions).find(t => {
-        if (t.startsWith('driver-') && t !== 'driver-submissions' && roleLabel !== 'driver') return false;
         return hasPermission(tabPermissions[t]);
       });
       if (firstAllowedTab) {
@@ -190,44 +237,44 @@ export default function FleetApp() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-        <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', bgcolor: 'background.default' }}>
-          <Box component="nav" sx={{ width: { md: '260px' }, flexShrink: { md: 0 } }}>
-            <Drawer
-              variant="temporary"
-              open={mobileOpen}
-              onClose={handleDrawerToggle}
-              ModalProps={{ keepMounted: true }}
-              sx={{
-                display: { xs: 'block', md: 'none' },
-                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: '260px', bgcolor: 'background.paper' },
-              }}
-            >
-              <FleetSidebar activeTab={activeTab} setActiveTab={(tabId) => { setActiveTab(tabId); setMobileOpen(false); }} />
-            </Drawer>
-            <Drawer
-              variant="permanent"
-              sx={{
-                display: { xs: 'none', md: 'block' },
-                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: '260px', bgcolor: 'background.paper', borderRight: '1px solid', borderColor: 'divider' },
-              }}
-              open
-            >
-              <FleetSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-            </Drawer>
-          </Box>
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', width: { xs: '100%', md: `calc(100% - 260px)` } }}>
-            <FleetHeader onAddVehicle={handleAddVehicle} handleDrawerToggle={handleDrawerToggle} />
-            <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: '16px', sm: '24px' }, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <Suspense fallback={<PageLoader />}>
-                {ActivePage ? <ActivePage /> : (
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', border: '1px dashed #2a2a30', borderRadius: '12px', bgcolor: 'background.paper' }}>
-                    <Box component="span" sx={{ color: 'text.primary' }}>{activeTab.replace('-', ' ').toUpperCase()} section is under development.</Box>
-                  </Box>
-                )}
-              </Suspense>
-            </Box>
+      <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', bgcolor: 'background.default' }}>
+        <Box component="nav" sx={{ width: { md: '260px' }, flexShrink: { md: 0 } }}>
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerToggle}
+            ModalProps={{ keepMounted: true }}
+            sx={{
+              display: { xs: 'block', md: 'none' },
+              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: '260px', bgcolor: 'background.paper' },
+            }}
+          >
+            <FleetSidebar activeTab={activeTab} setActiveTab={(tabId) => { setActiveTab(tabId); setMobileOpen(false); }} />
+          </Drawer>
+          <Drawer
+            variant="permanent"
+            sx={{
+              display: { xs: 'none', md: 'block' },
+              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: '260px', bgcolor: 'background.paper', borderRight: '1px solid', borderColor: 'divider' },
+            }}
+            open
+          >
+            <FleetSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          </Drawer>
+        </Box>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', width: { xs: '100%', md: `calc(100% - 260px)` } }}>
+          <FleetHeader onAddVehicle={handleAddVehicle} handleDrawerToggle={handleDrawerToggle} />
+          <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: '16px', sm: '24px' }, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <Suspense fallback={<PageLoader />}>
+              {ActivePage ? <ActivePage /> : (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', border: '1px dashed #2a2a30', borderRadius: '12px', bgcolor: 'background.paper' }}>
+                  <Box component="span" sx={{ color: 'text.primary' }}>{activeTab.replace('-', ' ').toUpperCase()} section is under development.</Box>
+                </Box>
+              )}
+            </Suspense>
           </Box>
         </Box>
+      </Box>
     </ThemeProvider>
   );
 }

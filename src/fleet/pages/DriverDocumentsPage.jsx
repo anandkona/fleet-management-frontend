@@ -214,23 +214,23 @@ export default function DriverDocumentsPage() {
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                     <Stack direction="row" spacing={0.5}>
                       <Tooltip title="View">
-                        <IconButton size="small" onClick={() => openView(doc)} sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: 'primary.light' } }}>
-                          <Visibility fontSize="small" />
+                        <IconButton size="small" onClick={() => openView(doc)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                          <Visibility sx={{ fontSize: 17 }}  />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Download">
-                        <IconButton size="small" onClick={() => handleDownload(doc)} sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: 'primary.light' } }}>
-                          <Download fontSize="small" />
+                        <IconButton size="small" onClick={() => handleDownload(doc)} sx={{ bgcolor: '#8b5cf615', color: '#8b5cf6', '&:hover': { bgcolor: '#8b5cf630' } }}>
+                          <Download sx={{ fontSize: 17 }}  />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Upload/Update">
-                        <IconButton size="small" onClick={handleOpenUpload} sx={{ color: '#1976d2' }}>
-                          <CloudUpload fontSize="small" />
+                        <IconButton size="small" onClick={handleOpenUpload} sx={{ bgcolor: '#8b5cf615', color: '#8b5cf6', '&:hover': { bgcolor: '#8b5cf630' } }}>
+                          <CloudUpload sx={{ fontSize: 17 }}  />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
-                        <IconButton size="small" onClick={() => handleDelete(doc)} sx={{ color: '#ef4444' }}>
-                          <Delete fontSize="small" />
+                        <IconButton size="small" onClick={() => handleDelete(doc)} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                          <Delete sx={{ fontSize: 17 }}  />
                         </IconButton>
                       </Tooltip>
                     </Stack>

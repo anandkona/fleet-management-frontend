@@ -21,7 +21,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { 
-  DarkMode, LightMode, Info, CheckCircle, Warning, Error as ErrorIcon, AccountCircle as AccountCircleIcon
+  DarkMode, LightMode, Info, CheckCircle, Warning, Error as ErrorIcon, AccountCircle as AccountCircleIcon,
+  Logout as LogoutIcon, KeyboardArrowDown as KeyboardArrowDownIcon
 } from '@mui/icons-material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
@@ -43,11 +44,15 @@ import SecurityIcon from '@mui/icons-material/Security';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useSettings } from '../contexts/SettingsContext';
 import { useNotification } from '../contexts/NotificationContext';
+import { useAuth } from '../contexts/AuthContext';
+import { Avatar } from '@mui/material';
+import { ConfirmDialog } from './components/Common';
 
 function FleetHeader({ handleDrawerToggle }) {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const pageTitle = useMemo(() => {
     const path = location.pathname.substring(1);
@@ -82,12 +87,34 @@ function FleetHeader({ handleDrawerToggle }) {
       default: return DashboardIcon;
     }
   }, [location.pathname]);
-  const { themeMode, toggleThemeMode } = useSettings();
+
+  const { settings, themeMode, toggleThemeMode } = useSettings();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotification();
   const [notifAnchorEl, setNotifAnchorEl] = useState(null);
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+
+  const displayName = [user?.name, user?.fullName, user?.email].find(Boolean) || '';
+  const roleName = (user?.role && typeof user.role === 'object')
+    ? (user.role.key || user.role.name || '')
+    : (typeof user?.role === 'string' && (user.role.includes(' ') || user.role.includes('_')) ? user.role : '');
+  const roleLabel = roleName ? String(roleName).toLowerCase().replace(/_/g, ' ') : '';
+  const initials = displayName
+    ? displayName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+    : (user?.email ? String(user.email).charAt(0).toUpperCase() : '');
 
   const handleNotifClick = (event) => setNotifAnchorEl(event.currentTarget);
   const handleNotifClose = () => setNotifAnchorEl(null);
+  const handleProfileClick = (event) => setProfileAnchorEl(event.currentTarget);
+  const handleProfileClose = () => setProfileAnchorEl(null);
+  
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+
+  const executeLogout = async () => {
+    setLogoutDialogOpen(false);
+    handleProfileClose();
+    await logout();
+    navigate('/login');
+  };
 
   const getNotifIcon = (type) => {
     switch(type) {
@@ -165,25 +192,48 @@ function FleetHeader({ handleDrawerToggle }) {
           {themeMode === 'dark' ? <LightMode sx={{ fontSize: { xs: '18px', sm: '20px' } }} /> : <DarkMode sx={{ fontSize: { xs: '18px', sm: '20px' } }} />}
         </IconButton>
 
-        <IconButton onClick={handleNotifClick} sx={{ border: '1px solid', borderColor: 'divider', p: { xs: '6px', sm: '8px' }, borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' } }}>
+        <IconButton onClick={handleNotifClick} sx={{ color: 'text.secondary', border: '1px solid', borderColor: 'divider', p: { xs: '6px', sm: '8px' }, borderRadius: '50%' }}>
           <Badge badgeContent={unreadCount} sx={{ '& .MuiBadge-badge': { backgroundColor: '#1976d2', color: '#fff' } }}>
             <NotificationsIcon sx={{ fontSize: { xs: '18px', sm: '20px' } }} />
           </Badge>
         </IconButton>
+
+        <Box 
+          onClick={handleProfileClick}
+          sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', ml: { xs: 0, sm: 1 }, p: 0.5, borderRadius: 2, '&:hover': { bgcolor: 'action.hover' } }}
+        >
+          <Avatar
+            sx={{
+              width: '36px',
+              height: '36px',
+              backgroundColor: '#0288d1',
+              color: '#fff',
+              fontSize: '0.85rem',
+              fontWeight: 700
+            }}
+          >
+            {initials}
+          </Avatar>
+          <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexDirection: 'column' }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.85rem', lineHeight: 1.2 }}>
+              {displayName}
+            </Typography>
+            {roleLabel && (
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', textTransform: 'capitalize' }}>
+                {roleLabel}
+              </Typography>
+            )}
+          </Box>
+          <KeyboardArrowDownIcon sx={{ color: 'text.secondary', fontSize: '20px', display: { xs: 'none', sm: 'block' } }} />
+        </Box>
+
         <Menu
           anchorEl={notifAnchorEl}
           open={Boolean(notifAnchorEl)}
           onClose={handleNotifClose}
           PaperProps={{
             elevation: 3,
-            sx: {
-              width: 320,
-              maxHeight: 400,
-              mt: 1.5,
-              borderRadius: '12px',
-              overflow: 'hidden',
-              bgcolor: 'background.paper',
-            },
+            sx: { width: 320, maxHeight: 400, mt: 1.5, borderRadius: '12px', overflow: 'hidden', bgcolor: 'background.paper' },
           }}
           transformOrigin={{ horizontal: 'right', vertical: 'top' }}
           anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
@@ -226,13 +276,35 @@ function FleetHeader({ handleDrawerToggle }) {
           </Box>
         </Menu>
 
-        <IconButton onClick={() => navigate('/settings', { replace: true })} sx={{ border: '1px solid', borderColor: 'divider', p: { xs: '6px', sm: '8px' }, borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }, display: { xs: 'none', sm: 'inline-flex' } }}>
-          <SettingsIcon sx={{ fontSize: { xs: '18px', sm: '20px' } }} />
-        </IconButton>
-        <IconButton onClick={() => navigate('/profile', { replace: true })} sx={{ border: '1px solid', borderColor: 'divider', p: { xs: '6px', sm: '8px' }, borderRadius: '50%', color: 'text.primary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }, display: { xs: 'none', sm: 'inline-flex' } }}>
-          <AccountCircleIcon sx={{ fontSize: { xs: '18px', sm: '20px' } }} />
-        </IconButton>
+        <Menu
+          anchorEl={profileAnchorEl}
+          open={Boolean(profileAnchorEl)}
+          onClose={handleProfileClose}
+          PaperProps={{
+            elevation: 3,
+            sx: { width: 220, mt: 1.5, borderRadius: '12px', bgcolor: 'background.paper' },
+          }}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+          <MenuItem onClick={() => { handleProfileClose(); navigate('/profile'); }} sx={{ py: 1.5 }}>
+            <AccountCircleIcon sx={{ mr: 2, color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="body2">My Profile</Typography>
+          </MenuItem>
+          <MenuItem onClick={() => { handleProfileClose(); setLogoutDialogOpen(true); }} sx={{ py: 1.5, color: 'error.main' }}>
+            <LogoutIcon sx={{ mr: 2, color: 'error.main', fontSize: 20 }} />
+            <Typography variant="body2" fontWeight="600">Logout</Typography>
+          </MenuItem>
+        </Menu>
       </Box>
+      <ConfirmDialog 
+        open={logoutDialogOpen} 
+        title="Logout" 
+        message="Are you sure you want to log out?" 
+        onConfirm={executeLogout} 
+        onCancel={() => setLogoutDialogOpen(false)} 
+        confirmColor="error" 
+      />
     </Box>
   );
 }

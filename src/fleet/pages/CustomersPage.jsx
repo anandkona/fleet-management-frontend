@@ -124,11 +124,11 @@ export default function CustomersPage() {
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}><StatusChip value={r.status} /></TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                     <Stack direction="row" spacing={0.5}>
-                      <IconButton size="small" onClick={() => handleEdit(r)}>
-                        <EditOutlined fontSize="small" sx={{ color: '#06b6d4' }} />
+                      <IconButton size="small" onClick={() => handleEdit(r)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                        <EditOutlined sx={{ fontSize: 17 }}   />
                       </IconButton>
-                      <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, id: r.id })}>
-                        <DeleteOutline fontSize="small" sx={{ color: '#ef4444' }} />
+                      <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, id: r.id })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                        <DeleteOutline sx={{ fontSize: 17 }}   />
                       </IconButton>
                     </Stack>
                   </TableCell>

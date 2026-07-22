@@ -3,9 +3,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableRow, Box, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   MenuItem, Stack, TableContainer, Avatar, Typography, Chip, useTheme, useMediaQuery, Card, CircularProgress,
-  Tabs, Tab, Grid, Divider, Tooltip
+  Tabs, Tab, Grid, Divider, Tooltip, InputAdornment
 } from '@mui/material';
-import { Add, Edit, People, Delete as DeleteIcon, Visibility, Link, Close } from '@mui/icons-material';
+import { Add, Edit, People, Delete as DeleteIcon, Visibility, VisibilityOff, Link, Close } from '@mui/icons-material';
 import api, { userService, roleService, driverService } from '../../services/api';
 import { StatusChip, PageHeader, ConfirmDialog } from '../components/Common';
 import { ALL_PERMISSIONS } from './RolesPage';
@@ -29,6 +29,7 @@ export default function UsersPage() {
   const [viewDialog, setViewDialog] = useState(false);
   const [viewTab, setViewTab] = useState(0);
   const [viewUser, setViewUser] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { hasPermission } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -109,8 +110,10 @@ export default function UsersPage() {
       
       let userId = selected?.id;
       if (selected) { 
+        if (payload.password) {
+          await userService.updatePassword(selected.id, payload.password);
+        }
         delete payload.password;
-        delete payload.email; // email cannot be updated
         await userService.update(selected.id, payload); 
       } else { 
         const res = await userService.create(payload); 
@@ -198,12 +201,20 @@ export default function UsersPage() {
                     {(hasPermission('user_update') || hasPermission('user_delete')) && (
                       <Stack direction="row" spacing={0.5}>
                         <Tooltip title="View Profile">
-                          <IconButton size="small" onClick={() => { setViewUser(u); setViewTab(0); setViewDialog(true); }} sx={{ color: '#10b981' }}>
-                            <Visibility fontSize="small" />
+                          <IconButton size="small" onClick={() => { setViewUser(u); setViewTab(0); setViewDialog(true); }} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                            <Visibility sx={{ fontSize: 17 }}  />
                           </IconButton>
                         </Tooltip>
-                        {hasPermission('user_update') && <IconButton size="small" onClick={() => openEdit(u)} sx={{ color: '#60a5fa' }}><Edit fontSize="small" /></IconButton>}
-                        {hasPermission('user_delete') && <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, item: u })} sx={{ color: '#ef4444' }}><DeleteIcon fontSize="small" /></IconButton>}
+                        {hasPermission('user_update') && (
+                          <Tooltip title="Edit User">
+                            <IconButton size="small" onClick={() => openEdit(u)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}><Edit sx={{ fontSize: 17 }}  /></IconButton>
+                          </Tooltip>
+                        )}
+                        {hasPermission('user_delete') && (
+                          <Tooltip title="Delete User">
+                            <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, item: u })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><DeleteIcon sx={{ fontSize: 17 }}  /></IconButton>
+                          </Tooltip>
+                        )}
                       </Stack>
                     )}
                   </TableCell>
@@ -223,7 +234,7 @@ export default function UsersPage() {
             <TextField label="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} onBlur={handleCheckExisting} fullWidth />
             <TextField label="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} onBlur={handleCheckExisting} type="email" fullWidth required />
             <TextField label="Mobile" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} fullWidth />
-            {!selected && <TextField label="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} type="password" fullWidth required />}
+            <TextField label={selected ? "New Password (leave blank to keep current)" : "Password"} value={form.password || ''} onChange={(e) => setForm({ ...form, password: e.target.value })} type={showPassword ? 'text' : 'password'} fullWidth required={!selected} InputProps={{ endAdornment: ( <InputAdornment position="end"> <IconButton onClick={() => setShowPassword(!showPassword)} edge="end"> {showPassword ? <VisibilityOff /> : <Visibility />} </IconButton> </InputAdornment> ) }} />
             <TextField label="Role" value={form.roleId} onChange={(e) => setForm({ ...form, roleId: e.target.value })} select fullWidth>
               <MenuItem value="">None</MenuItem>
               {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
@@ -283,8 +294,8 @@ export default function UsersPage() {
                 </Typography>
               </Box>
             </Box>
-            <IconButton onClick={() => setViewDialog(false)} size="small">
-              <Close />
+            <IconButton onClick={() => setViewDialog(false)} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+              <Close sx={{ fontSize: 17 }} />
             </IconButton>
           </Box>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>

@@ -226,25 +226,21 @@ export default function RolesPage() {
                     </TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                       <Stack direction="row" spacing={0.5}>
-                        {r.key !== 'super_admin' && (
-                          <>
-                            {hasPermission('role_update') && <Tooltip title="Edit Role">
-                              <IconButton size="small" onClick={() => {
-                                const keys = r.rolePermissions ? r.rolePermissions.map(rp => rp.permission?.key) : (r.permissions || []);
-                                setForm({ name: r.name, key: r.key, status: r.status, permissions: keys });
-                                setEditId(r.id);
-                                setDialogOpen(true);
-                              }}>
-                                <EditIcon sx={{ fontSize: 17, color: '#60a5fa' }} />
-                              </IconButton>
-                            </Tooltip>}
-                            {hasPermission('role_delete') && <Tooltip title="Delete Role">
-                              <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, item: r })}>
-                                <DeleteIcon sx={{ fontSize: 17, color: '#ef4444' }} />
-                              </IconButton>
-                            </Tooltip>}
-                          </>
-                        )}
+                        {hasPermission('role_update') && <Tooltip title="Edit Role">
+                          <IconButton size="small" onClick={() => {
+                            const keys = r.rolePermissions ? r.rolePermissions.map(rp => rp.permission?.key) : (r.permissions || []);
+                            setForm({ name: r.name, key: r.key, status: r.status, permissions: keys });
+                            setEditId(r.id);
+                            setDialogOpen(true);
+                          }} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                            <EditIcon sx={{ fontSize: 17 }}  />
+                          </IconButton>
+                        </Tooltip>}
+                        {hasPermission('role_delete') && <Tooltip title="Delete Role">
+                          <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, item: r })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                            <DeleteIcon sx={{ fontSize: 17 }}  />
+                          </IconButton>
+                        </Tooltip>}
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -267,8 +263,8 @@ export default function RolesPage() {
         )}
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>{editId ? 'EditOutlined Role' : 'Create Role'}</DialogTitle>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { bgcolor: 'background.paper', backgroundImage: 'none' } }}>
+        <DialogTitle sx={{ color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>{editId ? 'Edit Role' : 'Create Role'}</DialogTitle>
         <DialogContent sx={{ pt: 3, pb: 3 }}>
           <Grid container spacing={2} sx={{ mb: 3, mt: 1 }}>
             <Grid item xs={12} sm={6}>
@@ -280,7 +276,7 @@ export default function RolesPage() {
           </Grid>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>Permissions</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>Permissions</Typography>
             <Button size="small" onClick={() => setForm(f => ({ ...f, permissions: f.permissions.length === availablePermissions.length ? [] : availablePermissions.map(p => p.key) }))}>
               {form.permissions.length === availablePermissions.length ? 'Deselect All' : 'Select All'}
             </Button>
@@ -298,7 +294,7 @@ export default function RolesPage() {
                       onClick={(e) => e.stopPropagation()}
                       onFocus={(e) => e.stopPropagation()}
                       control={<Checkbox checked={allSelected} indeterminate={someSelected} onChange={() => handleToggleGroup(group)} size="small" />}
-                      label={<Typography sx={{ fontWeight: 600 }}>{group} ({perms.length})</Typography>}
+                      label={<Typography sx={{ fontWeight: 600, color: 'text.primary' }}>{group} ({perms.length})</Typography>}
                     />
                   </AccordionSummary>
                   <AccordionDetails sx={{ p: 2 }}>

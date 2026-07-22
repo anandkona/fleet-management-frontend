@@ -175,21 +175,13 @@ export default function DriverDashboard() {
 
                   <Box sx={{ p: 3, borderRadius: 3, bgcolor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(25,118,210,0.04)', border: '1px dashed', borderColor: 'divider' }}>
                     <Grid container spacing={2}>
-                      <Grid item xs={6} sm={3}>
-                        <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>TRIP NUMBER</Typography>
-                        <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{currentTrip.tripNumber || currentTrip.id?.substring(0, 8)}</Typography>
-                      </Grid>
-                      <Grid item xs={6} sm={3}>
+                      <Grid item xs={6} sm={6}>
                         <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>VEHICLE ID</Typography>
-                        <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{currentTrip.vehicleId || 'Assigned'}</Typography>
+                        <Typography sx={{ fontWeight: 700, color: 'text.primary', wordBreak: 'break-all' }}>{currentTrip.vehicleId || 'Assigned'}</Typography>
                       </Grid>
-                      <Grid item xs={6} sm={3}>
+                      <Grid item xs={6} sm={6}>
                         <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>DISTANCE</Typography>
                         <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{currentTrip.distance || '0 km'}</Typography>
-                      </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>EST. ARRIVAL</Typography>
-                        <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>-</Typography>
                       </Grid>
                     </Grid>
                   </Box>

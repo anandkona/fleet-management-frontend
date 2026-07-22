@@ -3,10 +3,10 @@ import {
   Box, Card, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, TablePagination, IconButton, Button, TextField, Dialog,
   DialogTitle, DialogContent, DialogActions, Grid, MenuItem, Stack,
-  Typography, Tooltip, InputAdornment, Chip, Skeleton, useTheme, useMediaQuery, Autocomplete, Alert, Snackbar
+  Typography, Tooltip, InputAdornment, Chip, Skeleton, useTheme, useMediaQuery, Autocomplete, Alert, Snackbar, CircularProgress, Divider
 } from '@mui/material';
-import { Add, Edit, Search, Close, PlayArrow, Stop, Refresh, Visibility, Schedule, Cancel, Route, LocationOn, Flag, Person, DirectionsCar, Straighten, Notes, Info, Delete } from '@mui/icons-material';
-import { tripService, vehicleService, driverService } from '../../services/api';
+import { Add, Edit, Search, Close, PlayArrow, Stop, Refresh, Visibility, Schedule, Cancel, Route, LocationOn, Flag, Person, DirectionsCar, Straighten, Notes, Info, Delete, CloudUpload, Archive, Download } from '@mui/icons-material';
+import { tripService, vehicleService, driverService, documentService } from '../../services/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import { StatusChip, ConfirmDialog, PageHeader } from '../components/Common';
 
@@ -47,6 +47,9 @@ export default function TripLogsPage() {
   const [viewTrip, setViewTrip] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [tripDocuments, setTripDocuments] = useState([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [viewDocDialog, setViewDocDialog] = useState({ open: false, doc: null, fileUrl: null, contentType: null, isLoading: false });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -175,11 +178,98 @@ export default function TripLogsPage() {
     }
   };
 
+  const handleUploadPod = async (tripId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', `POD - Trip ${String(tripId).substring(0, 6)}`);
+    formData.append('documentCategory', 'TRIP');
+    formData.append('documentType', 'POD');
+    formData.append('tripId', tripId);
+    
+    try {
+      await documentService.upload(formData);
+      addNotification('Success', 'Document uploaded successfully', 'success');
+    } catch (err) {
+      console.error(err);
+      addNotification('Error', 'Failed to upload document', 'error');
+    }
+  };
+
+  const openDocView = async (doc) => {
+    setViewDocDialog({ open: true, doc, fileUrl: null, contentType: null, isLoading: true });
+    try {
+      const id = doc.id || doc._id;
+      const res = await documentService.getViewUrl(id);
+      const url = res.data?.data?.url || res.data?.url;
+      if (!url) throw new Error("No view URL returned");
+
+      const filename = doc.originalFileName || doc.filename || doc.title || '';
+      let contentType = doc.mimeType || 'application/pdf';
+
+      if (filename.match(/\.(jpg|jpeg)$/i)) contentType = 'image/jpeg';
+      else if (filename.match(/\.png$/i)) contentType = 'image/png';
+      else if (filename.match(/\.pdf$/i)) contentType = 'application/pdf';
+
+      setViewDocDialog(prev => ({ ...prev, fileUrl: url, contentType, isLoading: false }));
+    } catch (err) {
+      console.error(err);
+      setViewDocDialog(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleDownloadDoc = async (doc) => {
+    try {
+      const res = await documentService.getDownloadUrl(doc.id || doc._id);
+      const url = res.data?.data?.url || res.data?.url;
+      if (url) window.open(url, '_blank');
+    } catch (err) {
+      console.error(err);
+      addNotification('Error', 'Failed to get document URL', 'error');
+    }
+  };
+
+  const handleDeleteDoc = async (doc) => {
+    if (!window.confirm(`Are you sure you want to delete "${doc.title || doc.name || 'this document'}"?`)) return;
+    try {
+      await documentService.delete(doc.id || doc._id);
+      addNotification('Success', 'Document deleted successfully', 'success');
+      if (viewTrip) openHistory(viewTrip);
+    } catch (err) {
+      console.error(err);
+      addNotification('Error', 'Failed to delete document', 'error');
+    }
+  };
+
+  const handleArchiveDoc = async (doc) => {
+    try {
+      await documentService.archive(doc.id || doc._id);
+      addNotification('Success', 'Document archived successfully', 'success');
+      if (viewTrip) openHistory(viewTrip);
+    } catch (err) {
+      console.error(err);
+      addNotification('Error', 'Failed to archive document', 'error');
+    }
+  };
+
   const openHistory = async (t) => {
-    setViewTrip(t); setHistoryDialog(true); setHistoryLoading(true);
-    try { const res = await tripService.history(t.id); setHistoryData(res.data?.data ?? res.data ?? []); }
+    setHistoryDialog(true); setViewTrip(t); setHistoryLoading(true); setDocsLoading(true);
+    
+    // Fetch History
+    try { const res = await tripService.history(t.id || t._id); setHistoryData(res.data?.data ?? res.data ?? []); }
     catch { setHistoryData([]); }
     setHistoryLoading(false);
+
+    // Fetch Documents
+    try {
+      // Trying to fetch documents that match this tripId
+      // Sometimes APIs accept tripId directly, or search
+      const res = await documentService.getAll({ tripId: t.id || t._id, documentCategory: 'TRIP' });
+      const items = res.data?.data?.items ?? (Array.isArray(res.data?.data) ? res.data.data : []);
+      setTripDocuments(items);
+    } catch {
+      setTripDocuments([]);
+    }
+    setDocsLoading(false);
   };
 
   const toast = (msg, severity = 'success') => setSnack({ open: true, msg, severity });
@@ -254,12 +344,18 @@ export default function TripLogsPage() {
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}><StatusChip status={t.status} /></TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                     <Stack direction="row" spacing={0.5}>
-                      {t.status === 'SCHEDULED' && <Tooltip title="Start Trip"><IconButton size="small" color="success" onClick={() => openLifecycle(t, 'start')}><PlayArrow fontSize="small" /></IconButton></Tooltip>}
-                      {t.status === 'STARTED' && <Tooltip title="Complete Trip"><IconButton size="small" color="warning" onClick={() => openLifecycle(t, 'complete')}><Stop fontSize="small" /></IconButton></Tooltip>}
-                      {!['COMPLETED', 'CANCELLED'].includes(t.status) && <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(t)}><Edit sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>}
-                      <Tooltip title="View"><IconButton size="small" onClick={() => openHistory(t)}><Visibility sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>
-                      {!['COMPLETED', 'CANCELLED'].includes(t.status) && <Tooltip title="Cancel Trip"><IconButton size="small" onClick={() => openLifecycle(t, 'cancel')}><Cancel sx={{ fontSize: 17, color: '#f97316' }} /></IconButton></Tooltip>}
-                      <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteId(t.id || t._id)}><Delete sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton></Tooltip>
+                      {t.status === 'SCHEDULED' && <Tooltip title="Start Trip"><IconButton size="small"  onClick={() => openLifecycle(t, 'start')} sx={{ bgcolor: '#64748b15', color: '#64748b', '&:hover': { bgcolor: '#64748b30' } }}><PlayArrow sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
+                      {t.status === 'STARTED' && <Tooltip title="Complete Trip"><IconButton size="small"  onClick={() => openLifecycle(t, 'complete')} sx={{ bgcolor: '#64748b15', color: '#64748b', '&:hover': { bgcolor: '#64748b30' } }}><Stop sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
+                      <Tooltip title="Upload Document">
+                        <IconButton size="small" component="label" sx={{ bgcolor: '#8b5cf615', color: '#8b5cf6', '&:hover': { bgcolor: '#8b5cf630' } }}>
+                          <CloudUpload sx={{ fontSize: 17 }}  />
+                          <input type="file" hidden onChange={(e) => { if (e.target.files?.[0]) handleUploadPod(t.id || t._id, e.target.files[0]); }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(t)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}><Edit sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
+                      <Tooltip title="View"><IconButton size="small" onClick={() => openHistory(t)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}><Visibility sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
+                      {!['COMPLETED', 'CANCELLED'].includes(t.status) && <Tooltip title="Cancel Trip"><IconButton size="small" onClick={() => openLifecycle(t, 'cancel')} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><Cancel sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
+                      <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteId(t.id || t._id)} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><Delete sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
                     </Stack>
                   </TableCell>
                 </TableRow>
@@ -274,7 +370,7 @@ export default function TripLogsPage() {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth fullScreen={isMobile} PaperProps={{ sx: { bgcolor: 'background.paper', backgroundImage: 'none' } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" component="div" sx={{ fontWeight: 600, color: 'text.primary' }}>{editing ? 'Edit Trip' : 'New Trip'}</Typography>
-          <IconButton onClick={() => setDialogOpen(false)} size="small"><Close sx={{ color: 'text.primary' }} /></IconButton>
+          <IconButton onClick={() => setDialogOpen(false)} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><Close sx={{ fontSize: 17 }}  /></IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ borderColor: 'divider' }}>
           <Grid container spacing={2} sx={{ pt: 1 }}>
@@ -317,7 +413,7 @@ export default function TripLogsPage() {
       <Dialog open={historyDialog} onClose={() => setHistoryDialog(false)} maxWidth="md" fullWidth fullScreen={isMobile} PaperProps={{ sx: { bgcolor: 'background.paper', backgroundImage: 'none' } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'text.primary', pb: 2 }}>
           <span>Trip Details: {viewTrip?.tripNumber || `#${String(viewTrip?.id || '').slice(-6)}`}</span>
-          <IconButton onClick={() => setHistoryDialog(false)} size="small"><Close sx={{ color: 'text.primary' }} /></IconButton>
+          <IconButton onClick={() => setHistoryDialog(false)} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><Close sx={{ fontSize: 17 }}  /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ bgcolor: 'background.paper', pt: 3 }}>
           {viewTrip && (
@@ -428,10 +524,76 @@ export default function TripLogsPage() {
                   <TableBody>{historyData.map((h, i) => <TableRow key={i}><TableCell><Chip label={h.action} size="small" /></TableCell><TableCell sx={{ color: 'text.primary' }}>{h.fromStatus || '—'}</TableCell><TableCell>{h.toStatus ? <StatusChip status={h.toStatus} /> : '—'}</TableCell><TableCell sx={{ color: 'text.primary' }}>{h.remarks || '—'}</TableCell><TableCell sx={{ color: 'text.primary' }}>{fmt(h.createdAt)}</TableCell></TableRow>)}</TableBody>
                 </Table>}
           </Card>
+
+          <Card sx={{ p: 2, boxShadow: 3, borderRadius: 2, mt: 4 }}>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', mb: 2 }}>Trip Documents</Typography>
+            {docsLoading ? <Stack spacing={1}><Skeleton height={40} sx={{ bgcolor: 'divider' }} /></Stack>
+              : tripDocuments.length === 0 ? <Typography sx={{ color: 'text.primary', py: 2, textAlign: 'center' }}>No documents uploaded for this trip</Typography>
+                : <Stack spacing={2}>
+                  {tripDocuments.map(doc => (
+                    <Box key={doc.id || doc._id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                      <Box>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Typography sx={{ color: 'text.primary', fontWeight: 600 }}>{doc.title || doc.name || 'Untitled Document'}</Typography>
+                          {doc.status === 'ARCHIVED' && <Chip label="ARCHIVED" size="small" color="default" sx={{ height: 20, fontSize: '0.65rem' }} />}
+                        </Stack>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{doc.documentType || 'POD'}</Typography>
+                      </Box>
+                      <Stack direction="row" spacing={0.5}>
+                        <Tooltip title="View Document">
+                          <IconButton size="small" onClick={() => openDocView(doc)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                            <Visibility sx={{ fontSize: 17 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Download">
+                          <IconButton size="small" onClick={() => handleDownloadDoc(doc)} sx={{ bgcolor: '#8b5cf615', color: '#8b5cf6', '&:hover': { bgcolor: '#8b5cf630' } }}>
+                            <Download sx={{ fontSize: 17 }} />
+                          </IconButton>
+                        </Tooltip>
+                        {doc.status !== 'ARCHIVED' && (
+                          <Tooltip title="Archive">
+                            <IconButton size="small" onClick={() => handleArchiveDoc(doc)} sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', '&:hover': { bgcolor: '#f59e0b30' } }}>
+                              <Archive sx={{ fontSize: 17 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        <Tooltip title="Delete">
+                          <IconButton size="small" onClick={() => handleDeleteDoc(doc)} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                            <Delete sx={{ fontSize: 17 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </Box>
+                  ))}
+                </Stack>}
+          </Card>
         </DialogContent>
       </Dialog>
 
       <ConfirmDialog open={!!deleteId} title="Delete Trip" message="This action cannot be undone. Are you sure?" onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />
+
+      {/* View Document Dialog */}
+      <Dialog open={viewDocDialog.open} onClose={() => setViewDocDialog({ ...viewDocDialog, open: false })} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Document Preview
+          <IconButton onClick={() => setViewDocDialog({ ...viewDocDialog, open: false })} size="small"><Close sx={{ fontSize: 17 }} /></IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ width: '100%', height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f8fafc', borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+            {viewDocDialog.isLoading ? <CircularProgress /> : viewDocDialog.fileUrl ? (
+              viewDocDialog.contentType?.includes('image') ? (
+                <img src={viewDocDialog.fileUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              ) : (
+                <iframe src={viewDocDialog.fileUrl} width="100%" height="100%" style={{ border: 'none' }} title="Document Preview" />
+              )
+            ) : <Typography>Preview not available</Typography>}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDocDialog({ ...viewDocDialog, open: false })}>Close</Button>
+          <Button variant="contained" onClick={() => handleDownloadDoc(viewDocDialog.doc)} disabled={viewDocDialog.isLoading || !viewDocDialog.doc}>Download</Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: 2 }}>{snack.msg}</Alert>

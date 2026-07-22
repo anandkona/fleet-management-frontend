@@ -145,50 +145,50 @@ export default function DriverSubmissionsPage() {
       <Stack direction="row" spacing={1} justifyContent="flex-end">
         {isPending && canApprove && (
           <Tooltip title="Approve">
-            <IconButton size="small" color="success" onClick={() => handleOpenAction(category, item.id, 'approve', 'Approve Submission')}>
-              <CheckCircleOutlineIcon fontSize="small" />
+            <IconButton size="small"  onClick={() => handleOpenAction(category, item.id, 'approve', 'Approve Submission')} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}>
+              <CheckCircleOutlineIcon sx={{ fontSize: 17 }}  />
             </IconButton>
           </Tooltip>
         )}
         {isPending && canVerify && (
           <Tooltip title="Verify">
-            <IconButton size="small" color="success" onClick={() => handleOpenAction(category, item.id, 'verify', 'Verify Document')}>
-              <CheckCircleOutlineIcon fontSize="small" />
+            <IconButton size="small"  onClick={() => handleOpenAction(category, item.id, 'verify', 'Verify Document')} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}>
+              <CheckCircleOutlineIcon sx={{ fontSize: 17 }}  />
             </IconButton>
           </Tooltip>
         )}
         {isPending && canAck && (
           <Tooltip title="Acknowledge">
-            <IconButton size="small" color="primary" onClick={() => handleOpenAction(category, item.id, 'acknowledge', 'Acknowledge Issue')}>
-              <CheckCircleOutlineIcon fontSize="small" />
+            <IconButton size="small"  onClick={() => handleOpenAction(category, item.id, 'acknowledge', 'Acknowledge Issue')} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}>
+              <CheckCircleOutlineIcon sx={{ fontSize: 17 }}  />
             </IconButton>
           </Tooltip>
         )}
         {isPending && canReview && (
           <Tooltip title="Review">
-            <IconButton size="small" color="primary" onClick={() => handleOpenAction(category, item.id, 'review', 'Review Inspection')}>
-              <CheckCircleOutlineIcon fontSize="small" />
+            <IconButton size="small"  onClick={() => handleOpenAction(category, item.id, 'review', 'Review Inspection')} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}>
+              <CheckCircleOutlineIcon sx={{ fontSize: 17 }}  />
             </IconButton>
           </Tooltip>
         )}
         {isPending && (category !== 'issues') && (
           <Tooltip title="Request Changes">
-            <IconButton size="small" color="warning" onClick={() => handleOpenAction(category, item.id, 'request-changes', 'Request Changes')}>
-              <EditIcon fontSize="small" />
+            <IconButton size="small"  onClick={() => handleOpenAction(category, item.id, 'request-changes', 'Request Changes')} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+              <EditIcon sx={{ fontSize: 17 }}  />
             </IconButton>
           </Tooltip>
         )}
         {item.status === 'ACKNOWLEDGED' && category === 'issues' && (
           <Tooltip title="Resolve">
-            <IconButton size="small" color="success" onClick={() => handleOpenAction(category, item.id, 'resolve', 'Resolve Issue')}>
-              <CheckCircleOutlineIcon fontSize="small" />
+            <IconButton size="small"  onClick={() => handleOpenAction(category, item.id, 'resolve', 'Resolve Issue')} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}>
+              <CheckCircleOutlineIcon sx={{ fontSize: 17 }}  />
             </IconButton>
           </Tooltip>
         )}
         {isPending && (
           <Tooltip title="Reject">
-            <IconButton size="small" color="error" onClick={() => handleOpenAction(category, item.id, 'reject', 'Reject Submission')}>
-              <CancelOutlinedIcon fontSize="small" />
+            <IconButton size="small"  onClick={() => handleOpenAction(category, item.id, 'reject', 'Reject Submission')} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+              <CancelOutlinedIcon sx={{ fontSize: 17 }}  />
             </IconButton>
           </Tooltip>
         )}

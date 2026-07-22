@@ -50,7 +50,7 @@ export default function AuthProvider({ children }) {
     }
 
     authService.me()
-      .then((res) => {
+      .then(async (res) => {
         const payload = res.data?.data || res.data;
         const userData = payload?.user || payload?.profile || payload;
         if (userData) {
@@ -60,10 +60,26 @@ export default function AuthProvider({ children }) {
           setUser(persistedUser);
         }
 
-        const nextPermissions = payload?.permissions || persistedPermissions;
-        if (nextPermissions?.length) {
-          setPermissions(nextPermissions);
-          localStorage.setItem('fleet_permissions', JSON.stringify(nextPermissions));
+        try {
+          const permRes = await authService.getEffectivePermissions();
+          const effectivePerms = permRes.data?.data?.effectivePermissions || permRes.data?.effectivePermissions;
+          if (effectivePerms && effectivePerms.length > 0) {
+            setPermissions(effectivePerms);
+            localStorage.setItem('fleet_permissions', JSON.stringify(effectivePerms));
+          } else {
+            const nextPermissions = payload?.permissions || persistedPermissions;
+            if (nextPermissions?.length) {
+              setPermissions(nextPermissions);
+              localStorage.setItem('fleet_permissions', JSON.stringify(nextPermissions));
+            }
+          }
+        } catch (err) {
+          console.warn("Failed to fetch effective permissions, falling back.", err);
+          const nextPermissions = payload?.permissions || persistedPermissions;
+          if (nextPermissions?.length) {
+            setPermissions(nextPermissions);
+            localStorage.setItem('fleet_permissions', JSON.stringify(nextPermissions));
+          }
         }
       })
       .catch(() => {
@@ -110,10 +126,26 @@ export default function AuthProvider({ children }) {
       }
     }
 
-    const permissionsPayload = data?.permissions || [];
-    if (permissionsPayload.length > 0) {
-      localStorage.setItem('fleet_permissions', JSON.stringify(permissionsPayload));
-      setPermissions(permissionsPayload);
+    try {
+      const permRes = await authService.getEffectivePermissions();
+      const effectivePerms = permRes.data?.data?.effectivePermissions || permRes.data?.effectivePermissions;
+      if (effectivePerms && effectivePerms.length > 0) {
+        localStorage.setItem('fleet_permissions', JSON.stringify(effectivePerms));
+        setPermissions(effectivePerms);
+      } else {
+        const permissionsPayload = data?.permissions || [];
+        if (permissionsPayload.length > 0) {
+          localStorage.setItem('fleet_permissions', JSON.stringify(permissionsPayload));
+          setPermissions(permissionsPayload);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch effective permissions during login, falling back.", err);
+      const permissionsPayload = data?.permissions || [];
+      if (permissionsPayload.length > 0) {
+        localStorage.setItem('fleet_permissions', JSON.stringify(permissionsPayload));
+        setPermissions(permissionsPayload);
+      }
     }
 
     return data;
@@ -137,24 +169,33 @@ export default function AuthProvider({ children }) {
   const isAuthenticated = !!user && !!Cookies.get('fleet_token');
 
   const getNormalizedRoleKey = (role) => {
+    if (typeof role === 'string') return role.trim().toLowerCase().replace(/\s+/g, '_');
     const key = role?.key || role?.name || '';
     return String(key).trim().toLowerCase().replace(/\s+/g, '_');
   };
 
   const ROLE_PERMISSION_FALLBACKS = {
-    super_admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view', 'dispatch_view', 'dispatch_assign', 'driver_submission_view', 'driver_submission_review', 'driver_fuel_approve', 'driver_expense_approve', 'driver_document_verify', 'driver_issue_review', 'driver_inspection_review'],
-    admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view', 'dispatch_view', 'dispatch_assign', 'driver_submission_view', 'driver_submission_review', 'driver_fuel_approve', 'driver_expense_approve', 'driver_document_verify', 'driver_issue_review', 'driver_inspection_review'],
+    super_admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'fuel_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view', 'dispatch_view', 'compliance_view', 'dispatch_assign', 'driver_submission_view', 'driver_submission_review', 'driver_fuel_approve', 'driver_expense_approve', 'driver_document_verify', 'driver_issue_review', 'driver_inspection_review', 'driver_advance_view', 'driver_settlement_view'],
+    admin: ['vehicle_view', 'trip_view', 'driver_view', 'asset_view', 'maintenance_view', 'repair_view', 'expense_view', 'fuel_view', 'finance_view', 'report_view', 'document_metadata_view', 'user_view', 'role_view', 'settings_view', 'dispatch_view', 'compliance_view', 'dispatch_assign', 'driver_submission_view', 'driver_submission_review', 'driver_fuel_approve', 'driver_expense_approve', 'driver_document_verify', 'driver_issue_review', 'driver_inspection_review', 'driver_advance_view', 'driver_settlement_view'],
     supervisor: ['trip_view', 'vehicle_view', 'driver_view', 'report_view'],
     manager: ['trip_view', 'vehicle_view', 'driver_view', 'report_view'],
-    mechanic: ['maintenance_view', 'repair_view'],
+    mechanic: ['maintenance_view', 'maintenance_create', 'maintenance_update', 'maintenance_submit', 'maintenance_approve', 'repair_view', 'repair_create', 'repair_update', 'repair_close', 'dashboard_view', 'vehicle_view', 'document_metadata_view', 'documents_view', 'documents_download'],
     finance: ['finance_view', 'expense_view', 'report_view', 'document_metadata_view'],
     assistant: ['finance_view', 'expense_view'],
-    driver: ['trip_view']
+    driver: ['driver_my_dashboard_view', 'driver_my_trips_view', 'driver_my_documents_view', 'driver_my_profile_view', 'driver_advance_view_own', 'driver_settlement_view_own', 'driver_expense_view_own', 'driver_fuel_view_own', 'driver_issue_view_own']
   };
 
   const hasPermission = useCallback((key) => {
     if (!key) return false;
     const normalizedKey = String(key).trim();
+    const roleKey = getNormalizedRoleKey(user?.role);
+
+    // Strictly sandbox drivers and mechanics regardless of backend permissions payload
+    if (roleKey === 'driver' || roleKey === 'mechanic') {
+      const fallback = ROLE_PERMISSION_FALLBACKS[roleKey];
+      return Array.isArray(fallback) && fallback.includes(normalizedKey);
+    }
+
     if (permissions.includes(normalizedKey)) return true;
 
     const rolePerms = user?.role?.permissions || user?.role?.rolePermissions;
@@ -169,7 +210,6 @@ export default function AuthProvider({ children }) {
       if (hasRolePerm) return true;
     }
 
-    const roleKey = getNormalizedRoleKey(user?.role);
     const fallback = ROLE_PERMISSION_FALLBACKS[roleKey];
     return Array.isArray(fallback) && fallback.includes(normalizedKey);
   }, [user, permissions]);

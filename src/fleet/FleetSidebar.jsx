@@ -48,6 +48,7 @@ import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import { ConfirmDialog } from './components/Common';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { dispatchService } from '../services/api';
 
 const menuConfig = [
@@ -91,6 +92,7 @@ const menuConfig = [
           { id: 'finance', label: 'Finance & PnL', icon: <MonetizationOnIcon />, permission: 'finance_view' },
           { id: 'transactions', label: 'Transactions', icon: <ReceiptLongIcon />, permission: 'finance_view' },
           { id: 'accounts', label: 'Accounts', icon: <AccountBalanceIcon />, permission: 'finance_view' },
+          { id: 'finance-categories', label: 'Categories', icon: <CategoryIcon />, permission: 'finance_view' },
           { id: 'customers', label: 'Customers', icon: <PeopleIcon />, permission: 'finance_view' },
           { id: 'vendors', label: 'Vendors', icon: <StorefrontIcon />, permission: 'finance_view' },
           { id: 'trip-billing', label: 'Trip Billing', icon: <ReceiptIcon />, permission: 'finance_view' },
@@ -128,6 +130,7 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
   const navigate = useNavigate();
 
   const { user, permissions, logout, hasPermission } = useAuth();
+  const { settings } = useSettings();
 
   useEffect(() => {
     // Only fetch if user has permission to view dispatch board to avoid unauthorized errors
@@ -161,7 +164,10 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
     }
     const allowedItems = section.items.map(item => {
       if (item.subItems) {
-        const allowedSubItems = item.subItems.filter(sub => !sub.permission || hasPermission(sub.permission));
+        const allowedSubItems = item.subItems.filter(sub => {
+          if (roleLabel === 'finance' && sub.id === 'finance') return false;
+          return !sub.permission || hasPermission(sub.permission);
+        });
         return { ...item, subItems: allowedSubItems };
       }
       return item;
@@ -176,7 +182,7 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
           return { ...item, badge: String(dispatchSummary.availableVehicles || 0), badgeColor: 'black' };
         }
         if (item.id === 'drivers') {
-          return { ...item, badge: String(dispatchSummary.availableDrivers || 0), badgeColor: 'info' };
+          return { ...item, badge: String(dispatchSummary.availableDrivers || 0), badgeColor: 'black' };
         }
         if (item.id === 'dispatch') {
           const unassigned = dispatchSummary.unassignedTrips || 0;
@@ -214,20 +220,23 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
       <Box sx={{ p: '24px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <Box
           sx={{
-            width: '32px',
-            height: '32px',
+            width: '44px',
+            height: '44px',
             borderRadius: '8px',
-            backgroundColor: '#1976d2',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            overflow: 'hidden'
           }}
         >
-          <BusinessCenterIcon sx={{ color: '#fff', fontSize: '18px' }} />
+          <img src={settings?.logo || "/fleet-logo.jpg"} alt="Fleet Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </Box>
-        <Box>
-          <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 800, lineHeight: 1.2, color: isDark ? '#fff' : '#0F172A', letterSpacing: '-0.5px' }}>
-            FleetAI
+        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, lineHeight: 1, color: isDark ? '#fff' : '#0F265C', letterSpacing: '1px' }}>
+            FLEET
+          </Typography>
+          <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, lineHeight: 1, color: '#3B82F6', letterSpacing: '0.5px', mt: 0.3 }}>
+            MANAGEMENT SYSTEM
           </Typography>
         </Box>
       </Box>

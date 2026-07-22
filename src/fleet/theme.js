@@ -111,6 +111,13 @@ export const getTheme = (mode) => createTheme({
           backgroundImage: 'none',
         }),
       },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          color: theme.palette.text.primary,
+        }),
+      },
     }
   },
 });

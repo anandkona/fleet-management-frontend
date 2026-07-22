@@ -209,7 +209,7 @@ export default function ExpensesPage() {
         subicon={<ReceiptIcon/>}
         action={
           <Stack direction="row" spacing={1}>
-            <Tooltip title="Export to Excel"><IconButton onClick={exportToExcel} sx={{ border: '1px solid #3a3a42', borderRadius: 1.5 }}><FileDownloadIcon sx={{ fontSize: 18, color: '#10b981' }} /></IconButton></Tooltip>
+            <Tooltip title="Export to Excel"><IconButton onClick={exportToExcel} sx={{ bgcolor: '#64748b15', color: '#64748b', '&:hover': { bgcolor: '#64748b30' } }}><FileDownloadIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
             <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd} sx={{ borderRadius: 2 }}>Add Expense</Button>
           </Stack>
         }
@@ -273,13 +273,13 @@ export default function ExpensesPage() {
                     </TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                       <Stack direction="row" spacing={0.5}>
-                        <Tooltip title="View"><IconButton disabled={processingId === id} size="small" onClick={() => setViewRecord(r)}><VisibilityOutlinedIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>
-                        {s === 'DRAFT' && <Tooltip title="EditOutlined"><IconButton disabled={processingId === id} size="small" onClick={() => openEdit(r)}><EditOutlinedIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>}
-                        {s === 'DRAFT' && <Tooltip title="Submit"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'submit')}><SendIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
-                        {s === 'SUBMITTED' && <Tooltip title="Approve"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'approve')}><CheckCircleOutlineIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
-                        {s === 'SUBMITTED' && <Tooltip title="Reject"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'reject')}><HighlightOffIcon sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton></Tooltip>}
-                        {(s === 'DRAFT' || s === 'SUBMITTED') && <Tooltip title="Cancel"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'cancel')}><CancelOutlinedIcon sx={{ fontSize: 17, color: '#f59e0b' }} /></IconButton></Tooltip>}
-                        <Tooltip title="Delete"><IconButton disabled={processingId === id} size="small" onClick={() => setDeleteId(id)}><DeleteOutlineIcon sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton></Tooltip>
+                        <Tooltip title="View"><IconButton disabled={processingId === id} size="small" onClick={() => setViewRecord(r)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}><VisibilityOutlinedIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
+                        {s === 'DRAFT' && <Tooltip title="EditOutlined"><IconButton disabled={processingId === id} size="small" onClick={() => openEdit(r)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}><EditOutlinedIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
+                        {s === 'DRAFT' && <Tooltip title="Submit"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'submit')} sx={{ bgcolor: '#64748b15', color: '#64748b', '&:hover': { bgcolor: '#64748b30' } }}><SendIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
+                        {s === 'SUBMITTED' && <Tooltip title="Approve"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'approve')} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}><CheckCircleOutlineIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
+                        {s === 'SUBMITTED' && <Tooltip title="Reject"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'reject')} sx={{ bgcolor: '#64748b15', color: '#64748b', '&:hover': { bgcolor: '#64748b30' } }}><HighlightOffIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
+                        {(s === 'DRAFT' || s === 'SUBMITTED') && <Tooltip title="Cancel"><IconButton disabled={processingId === id} size="small" onClick={() => handleWorkflow(id, 'cancel')} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><CancelOutlinedIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
+                        <Tooltip title="Delete"><IconButton disabled={processingId === id} size="small" onClick={() => setDeleteId(id)} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><DeleteOutlineIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -307,7 +307,7 @@ export default function ExpensesPage() {
           <Card sx={{ width: '100%', maxWidth: 600, height: { xs: '100%', sm: 'auto' }, maxHeight: { xs: '100%', sm: '90vh' }, overflow: 'auto', borderRadius: { xs: 0, sm: 2 }, bgcolor: 'background.paper', backgroundImage: 'none', display: 'flex', flexDirection: 'column' }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{editRecord ? 'EditOutlined expense' : 'Add expense'}</Typography>
-              <IconButton size="small" onClick={closeForm}><CloseIcon sx={{ color: 'text.primary' }} fontSize="small" /></IconButton>
+              <IconButton size="small" onClick={closeForm} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><CloseIcon sx={{ fontSize: 17 }}   /></IconButton>
             </Stack>
             <Box sx={{ pt: 1, px: 3, pb: 3 }}>
               <Grid container spacing={2}>
@@ -340,8 +340,8 @@ export default function ExpensesPage() {
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>Expense Details</Typography>
               </Stack>
               <Stack direction="row" spacing={0.5}>
-                <Tooltip title="Print"><IconButton size="small" onClick={() => handlePrint(viewRecord)}><PrintIcon sx={{ fontSize: 18, color: 'text.primary' }} /></IconButton></Tooltip>
-                <IconButton size="small" onClick={() => setViewRecord(null)}><CloseIcon sx={{ color: 'text.primary' }} fontSize="small" /></IconButton>
+                <Tooltip title="Print"><IconButton size="small" onClick={() => handlePrint(viewRecord)} sx={{ bgcolor: '#64748b15', color: '#64748b', '&:hover': { bgcolor: '#64748b30' } }}><PrintIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
+                <IconButton size="small" onClick={() => setViewRecord(null)} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><CloseIcon sx={{ fontSize: 17 }}   /></IconButton>
               </Stack>
             </Stack>
             <Box sx={{ pt: 1, px: 3, pb: 3 }}>

@@ -130,17 +130,21 @@ export default function FinanceTransactionsPage() {
                 <TableRow key={tx.id} hover>
                   <TableCell>{new Date(tx.transactionDate).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <Chip label={tx.transactionType} size="small" color={getTypeColor(tx.transactionType)} sx={{ fontWeight: 'bold' }} />
+                    <Typography sx={{ fontWeight: 500, fontSize: '0.85rem', color: getTypeColor(tx.transactionType) === 'success' ? '#10b981' : (getTypeColor(tx.transactionType) === 'error' ? '#ef4444' : 'text.primary') }}>
+                      {tx.transactionType}
+                    </Typography>
                   </TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>₹{tx.amount?.toLocaleString()}</TableCell>
                   <TableCell>{tx.sourceModule}</TableCell>
                   <TableCell>
-                    <Chip label={tx.paymentMode?.replace('_', ' ')} size="small" variant="outlined" />
+                    <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.primary' }}>
+                      {tx.paymentMode?.replace('_', ' ')}
+                    </Typography>
                   </TableCell>
                   <TableCell>{tx.description || tx.referenceNumber || '-'}</TableCell>
                   <TableCell align="right">
-                    <IconButton size="small" color="error" onClick={() => setDeleteConfirm({ open: true, id: tx.id })}>
-                      <DeleteIcon fontSize="small" />
+                    <IconButton size="small"  onClick={() => setDeleteConfirm({ open: true, id: tx.id })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                      <DeleteIcon sx={{ fontSize: 17 }}  />
                     </IconButton>
                   </TableCell>
                 </TableRow>

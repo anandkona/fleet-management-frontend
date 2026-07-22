@@ -148,22 +148,22 @@ export default function DriverSettlementsPage() {
                     <Chip label={s.status || 'PENDING'} size="small" color={getStatusColor(s.status)} sx={{ fontWeight: 'bold' }} />
                   </TableCell>
                   <TableCell align="right" sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
-                    <IconButton size="small" color="primary" onClick={() => handleViewSummary(s.id)}>
-                      <Visibility fontSize="small" />
+                    <IconButton size="small"  onClick={() => handleViewSummary(s.id)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                      <Visibility sx={{ fontSize: 17 }}  />
                     </IconButton>
-                    <IconButton size="small" color="primary" onClick={() => handleEdit(s)}>
-                      <Edit fontSize="small" />
+                    <IconButton size="small"  onClick={() => handleEdit(s)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                      <Edit sx={{ fontSize: 17 }}  />
                     </IconButton>
-                    <IconButton size="small" color="error" onClick={() => setDeleteConfirm({ open: true, id: s.id })}>
-                      <DeleteIcon fontSize="small" />
+                    <IconButton size="small"  onClick={() => setDeleteConfirm({ open: true, id: s.id })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                      <DeleteIcon sx={{ fontSize: 17 }}  />
                     </IconButton>
                     {(s.status === 'SUBMITTED' || s.status === 'UNDER_REVIEW') && (
                       <>
-                        <IconButton size="small" color="success" onClick={() => handleAction(s.id, 'approve')}>
-                          <CheckCircle fontSize="small" />
+                        <IconButton size="small"  onClick={() => handleAction(s.id, 'approve')} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}>
+                          <CheckCircle sx={{ fontSize: 17 }}  />
                         </IconButton>
-                        <IconButton size="small" color="warning" onClick={() => handleAction(s.id, 'reject')}>
-                          <Cancel fontSize="small" />
+                        <IconButton size="small"  onClick={() => handleAction(s.id, 'reject')} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                          <Cancel sx={{ fontSize: 17 }}  />
                         </IconButton>
                       </>
                     )}

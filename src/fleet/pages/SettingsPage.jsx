@@ -150,6 +150,66 @@ export default function SettingsPage() {
                   />
                 </Grid>
 
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    value={localSettings.email || ''}
+                    onChange={handleChange('email')}
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Phone"
+                    value={localSettings.phone || ''}
+                    onChange={handleChange('phone')}
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Address"
+                    value={localSettings.address || ''}
+                    onChange={handleChange('address')}
+                    variant="outlined"
+                    size="small"
+                    multiline
+                    rows={2}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+                    <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: 'divider', overflow: 'hidden' }}>
+                      <img src={localSettings.logo || "/fleet-logo.jpg"} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </Box>
+                    <Button variant="outlined" size="small" component="label" sx={{ textTransform: 'none' }}>
+                      Change Logo
+                      <input 
+                        type="file" 
+                        hidden 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              const newLogo = event.target.result;
+                              handleChange('logo')({ target: { value: newLogo } });
+                              updateSettings({ logo: newLogo }); // Apply instantly
+                              enqueueSnackbar('Logo updated successfully!', { variant: 'success' });
+                            };
+                            reader.readAsDataURL(e.target.files[0]);
+                          }
+                        }} 
+                      />
+                    </Button>
+                  </Box>
+                </Grid>
+
                 <Grid item xs={12}>
                   <Divider sx={{ my: 1 }} />
                 </Grid>

@@ -1,11 +1,11 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Card, Typography, Grid, Button, Stack, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, MenuItem, IconButton, Chip,
   Table, TableBody, TableCell, TableHead, TableRow, TableContainer, CircularProgress,
-  useTheme
+  useTheme, Tooltip
 } from '@mui/material';
-import { Add, EditOutlined, DeleteOutline, AccountBalance } from '@mui/icons-material';
+import { Add, Edit, Delete as DeleteIcon, AccountBalance } from '@mui/icons-material';
 import api from '../../services/api';
 import { PageHeader, ConfirmDialog } from '../components/Common';
 import { useAuth } from '../../contexts/AuthContext';
@@ -124,12 +124,16 @@ export default function AccountsPage() {
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}><StatusChip value={r.status} /></TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                     <Stack direction="row" spacing={0.5}>
-                      <IconButton size="small" onClick={() => handleEdit(r)}>
-                        <EditOutlined fontSize="small" sx={{ color: '#3b82f6' }} />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, id: r.id })}>
-                        <DeleteOutline fontSize="small" sx={{ color: '#ef4444' }} />
-                      </IconButton>
+                      <Tooltip title="Edit Account">
+                        <IconButton size="small" onClick={() => handleEdit(r)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                          <Edit sx={{ fontSize: 17 }}   />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete Account">
+                        <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, id: r.id })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                          <DeleteIcon sx={{ fontSize: 17 }}   />
+                        </IconButton>
+                      </Tooltip>
                     </Stack>
                   </TableCell>
                 </TableRow>

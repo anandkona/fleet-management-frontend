@@ -24,6 +24,8 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import SpeedIcon from '@mui/icons-material/Speed';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 import NotesIcon from '@mui/icons-material/Notes';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import PrintIcon from '@mui/icons-material/Print';
 
 import { PageHeader, ConfirmDialog } from '../components/Common';
@@ -215,6 +217,19 @@ export default function FuelPage() {
     setActionDialog({ open: false, action: null, doc: null });
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this fuel entry?')) return;
+    try {
+      await api.delete(`/fuel/${id}`);
+      toast('Fuel entry deleted successfully');
+      addNotification('Fuel Entry Deleted', 'Successfully deleted fuel entry', 'success');
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      toast('Failed to delete fuel entry', 'error');
+    }
+  };
+
   const statusColor = (s) => {
     switch (s) {
       case 'APPROVED': return 'success';
@@ -261,24 +276,34 @@ export default function FuelPage() {
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
                       <Tooltip title="View Details">
-                        <IconButton size="small" color="primary" onClick={() => setViewDialog({ open: true, doc: r })}>
-                          <VisibilityIcon fontSize="small" />
+                        <IconButton size="small"  onClick={() => setViewDialog({ open: true, doc: r })} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                          <VisibilityIcon sx={{ fontSize: 17 }}  />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Edit">
+                        <IconButton size="small" onClick={() => openEdit(r)} sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', '&:hover': { bgcolor: '#f59e0b30' } }}>
+                          <EditIcon sx={{ fontSize: 17 }} />
                         </IconButton>
                       </Tooltip>
                       {(r.status === 'SUBMITTED' || r.status === 'DRAFT') && (
                         <>
                           <Tooltip title="Approve">
-                            <IconButton size="small" color="success" onClick={() => setActionDialog({ open: true, action: 'approve', doc: r })}>
-                              <CheckCircleOutlineIcon fontSize="small" />
+                            <IconButton size="small"  onClick={() => setActionDialog({ open: true, action: 'approve', doc: r })} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}>
+                              <CheckCircleOutlineIcon sx={{ fontSize: 17 }}  />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Reject">
-                            <IconButton size="small" color="error" onClick={() => setActionDialog({ open: true, action: 'reject', doc: r })}>
-                              <CancelOutlinedIcon fontSize="small" />
+                            <IconButton size="small"  onClick={() => setActionDialog({ open: true, action: 'reject', doc: r })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                              <CancelOutlinedIcon sx={{ fontSize: 17 }}  />
                             </IconButton>
                           </Tooltip>
                         </>
                       )}
+                      <Tooltip title="Delete">
+                        <IconButton size="small" onClick={() => handleDelete(r.id || r._id)} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                          <DeleteIcon sx={{ fontSize: 17 }} />
+                        </IconButton>
+                      </Tooltip>
                     </Stack>
                   </TableCell>
                 </TableRow>
@@ -402,8 +427,8 @@ export default function FuelPage() {
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
           <span>Fuel Entry Details</span>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <IconButton onClick={handlePrint} size="small" title="Print to PDF" sx={{ '@media print': { display: 'none' } }}><PrintIcon sx={{ color: 'text.primary' }} /></IconButton>
-            <IconButton onClick={() => setViewDialog({ open: false, doc: null })} size="small" sx={{ '@media print': { display: 'none' } }}><CloseIcon sx={{ color: 'text.primary' }} /></IconButton>
+            <IconButton onClick={handlePrint} size="small" title="Print to PDF" sx={{ bgcolor: '#64748b15', color: '#64748b', '&:hover': { bgcolor: '#64748b30' } }}><PrintIcon sx={{ fontSize: 17 }}  /></IconButton>
+            <IconButton onClick={() => setViewDialog({ open: false, doc: null })} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><CloseIcon sx={{ fontSize: 17 }}  /></IconButton>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ bgcolor: 'background.paper', pt: 3 }}>

@@ -4,7 +4,7 @@ import {
   TableRow, Button, Typography, Chip, Skeleton, useTheme, Alert, Stack, Dialog,
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem, TablePagination, InputAdornment, IconButton, Tooltip
 } from '@mui/material';
-import { PlayArrow, Stop, CloudUpload, Refresh, LocationOn, Flag, Search } from '@mui/icons-material';
+import { PlayArrow, Stop, CloudUpload, Refresh, Search } from '@mui/icons-material';
 import { driverPortalService } from '../../services/api';
 import { StatusChip, PageHeader } from '../components/Common';
 
@@ -161,11 +161,13 @@ export default function DriverTripsPage() {
                     </TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <LocationOn fontSize="small" color="primary" />
-                        <Typography variant="body2">{trip.origin || trip.startLocation || '—'}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {trip.start || trip.origin || trip.startLocation || trip.pickupLocation || trip.startAddress || 'Start'}
+                        </Typography>
                         <Typography variant="body2" color="text.secondary">{"→"}</Typography>
-                        <Flag fontSize="small" color="secondary" />
-                        <Typography variant="body2">{trip.destination || trip.endLocation || '—'}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {trip.end || trip.destination || trip.endLocation || trip.dropLocation || trip.endAddress || 'Destination'}
+                        </Typography>
                       </Stack>
                     </TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>

@@ -9,9 +9,9 @@ import {
 import { DataGrid } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import SpeedIcon from '@mui/icons-material/Speed';
@@ -267,9 +267,9 @@ export default function VehicleOpsPage() {
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Assign Driver"><IconButton size="small" sx={{ bgcolor: '#8b5cf615', color: '#8b5cf6', '&:hover': { bgcolor: '#8b5cf630' } }} onClick={() => { setAssignDriverDialog({ open: true, vehicle: row }); setSelectedDriver(row.currentDriver?.name || row.driver || ''); }}><PersonAddIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>
           {hasPermission('vehicle_compliance_update') && <Tooltip title="Update Compliance"><IconButton size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }} onClick={() => { setComplianceDialog({ open: true, vehicle: row }); setComplianceForm({ type: 'insurance', expiryDate: new Date().toISOString().split('T')[0], documentNumber: '', notes: '' }); }}><VerifiedUserIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
-          <Tooltip title="View"><IconButton size="small" sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }} onClick={() => setViewRecord(row)}><VisibilityOutlinedIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>
-          {hasPermission('vehicle_update') && <Tooltip title="EditOutlined"><IconButton size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', '&:hover': { bgcolor: '#f59e0b30' } }} onClick={() => openEdit(row)}><EditOutlinedIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
-          {hasPermission('vehicle_delete') && <Tooltip title="Delete"><IconButton size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }} onClick={() => setDeleteId(row.id || row._id)}><DeleteOutlineIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
+          <Tooltip title="View"><IconButton size="small" sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }} onClick={() => setViewRecord(row)}><VisibilityIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>
+          {hasPermission('vehicle_update') && <Tooltip title="Edit"><IconButton size="small" sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }} onClick={() => openEdit(row)}><EditIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
+          {hasPermission('vehicle_delete') && <Tooltip title="Delete"><IconButton size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }} onClick={() => setDeleteId(row.id || row._id)}><DeleteIcon sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
         </Stack>
       ),
     },
@@ -343,8 +343,8 @@ export default function VehicleOpsPage() {
         <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'center', zIndex: 1300 }}>
           <Card sx={{ width: '100%', maxWidth: 650, height: { xs: '100%', sm: 'auto' }, maxHeight: { xs: '100%', sm: '90vh' }, overflow: 'auto', borderRadius: { xs: 0, sm: 2 }, bgcolor: 'background.paper', backgroundImage: 'none', display: 'flex', flexDirection: 'column' }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{editRecord ? 'EditOutlined vehicle' : 'Add vehicle'}</Typography>
-              <IconButton size="small" onClick={closeForm}><CloseIcon sx={{ color: 'text.primary' }} fontSize="small" /></IconButton>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{editRecord ? 'Edit vehicle' : 'Add vehicle'}</Typography>
+              <IconButton size="small" onClick={closeForm} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><CloseIcon sx={{ fontSize: 17 }}   /></IconButton>
             </Stack>
             <Box sx={{ pt: 1, px: 3, pb: 3 }}>
               <Grid container spacing={2}>
@@ -400,7 +400,7 @@ export default function VehicleOpsPage() {
                 <DirectionsCarIcon sx={{ color: '#1976d2', fontSize: 22 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>Vehicle Details</Typography>
               </Stack>
-              <IconButton size="small" onClick={() => setViewRecord(null)}><CloseIcon sx={{ color: 'text.primary' }} fontSize="small" /></IconButton>
+              <IconButton size="small" onClick={() => setViewRecord(null)} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><CloseIcon sx={{ fontSize: 17 }}   /></IconButton>
             </Stack>
             <Box sx={{ pt: 1, px: 3, pb: 3 }}>
               <Grid container spacing={2.5}>

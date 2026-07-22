@@ -1,9 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api/v1`
-  : '/api/v1';
+const BASE_URL = 'https://backend-alpha-ten-24.vercel.app/api/v1';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -40,6 +38,7 @@ export const authService = {
   register: (firstName, lastName, email, phoneNumber, password) =>
     api.post('/auth/register', { firstName, lastName, email, phoneNumber, password }),
   me: () => api.get('/auth/me'),
+  getEffectivePermissions: () => api.get('/auth/effective-permissions'),
   logout: (refreshToken) => api.post('/auth/logout', { refreshToken }),
   refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
   requestPasswordReset: (email) =>
@@ -247,6 +246,8 @@ export const driverAdvanceService = {
 export const driverSettlementService = {
   getAll: (params) => api.get('/driver-settlements', { params }),
   getById: (id) => api.get(`/driver-settlements/${id}`),
+  create: (data) => api.post('/driver-settlements', data),
+  update: (id, data) => api.patch(`/driver-settlements/${id}`, data),
   getSummary: (id) => api.get(`/driver-settlements/${id}/summary`),
   submit: (id, notes) => api.patch(`/driver-settlements/${id}/submit`, { notes }),
   review: (id, notes) => api.patch(`/driver-settlements/${id}/review`, { notes }),
@@ -274,7 +275,7 @@ export const updateRolePermissions = (token, id, permissionKeys) =>
 export const documentService = {
   getAll: (params) => api.get('/documents', { params }),
   getById: (id) => api.get(`/documents/${id}`),
-  upload: (formData) => api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  upload: (formData) => api.post('/documents', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   update: (id, data) => api.put(`/documents/${id}`, data),
   delete: (id) => api.delete(`/documents/${id}`),
   getViewUrl: (id) => api.get(`/documents/${id}/view`),
@@ -292,6 +293,7 @@ export const driverPortalService = {
   getProfile: () => api.get('/me/driver-profile'),
   updateProfile: (data) => api.put('/me/driver-profile', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   getTrips: (params) => api.get('/me/driver-trips', { params }),
+  createTrip: (data) => api.post('/me/driver-trips', data),
   startTrip: (id, data) => api.post(`/me/driver-trips/${id}/start`, data),
   endTrip: (id, data) => api.post(`/me/driver-trips/${id}/end`, data),
   uploadPod: (id, formData) => api.post(`/me/driver-trips/${id}/pod`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
@@ -300,6 +302,9 @@ export const driverPortalService = {
   getAdvances: () => api.get('/me/driver-advances'),
   getSettlements: () => api.get('/me/driver-settlements'),
   getVehicles: () => api.get('/me/driver-vehicles'),
+  getFuel: (params) => api.get('/me/driver-fuel', { params }),
+  getExpenses: (params) => api.get('/me/driver-expenses', { params }),
+  getIssues: (params) => api.get('/me/driver-issues', { params }),
 };
 
 // ─── DRIVER SUBMISSIONS ───────────────────────────────────────────────────────

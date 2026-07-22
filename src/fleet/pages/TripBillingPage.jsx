@@ -138,7 +138,9 @@ export default function TripBillingPage() {
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', fontWeight: 600 }}>{b.invoiceNumber || 'DRAFT'}</TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>{new Date(b.invoiceDate).toLocaleDateString()}</TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-                      <Chip label={`TRIP-${b.tripId?.substring(0, 6).toUpperCase()}`} size="small" />
+                      <Typography sx={{ color: 'text.primary', fontWeight: 600, fontSize: '0.85rem' }}>
+                        {`TRIP-${b.tripId?.substring(0, 6).toUpperCase()}`}
+                      </Typography>
                     </TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>{b.customerId || '-'}</TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', fontWeight: 700 }}>₹{total.toLocaleString()}</TableCell>
@@ -147,11 +149,11 @@ export default function TripBillingPage() {
                     </TableCell>
                     <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }} align="right">
                       <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                        <IconButton size="small" onClick={() => handleEdit(b)}>
-                          <Edit fontSize="small" sx={{ color: '#3b82f6' }} />
+                        <IconButton size="small" onClick={() => handleEdit(b)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                          <Edit sx={{ fontSize: 17 }}   />
                         </IconButton>
-                        <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, id: b.id })}>
-                          <DeleteIcon fontSize="small" sx={{ color: '#ef4444' }} />
+                        <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, id: b.id })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                          <DeleteIcon sx={{ fontSize: 17 }}   />
                         </IconButton>
                       </Box>
                     </TableCell>

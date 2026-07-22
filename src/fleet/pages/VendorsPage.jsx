@@ -134,11 +134,11 @@ export default function VendorsPage() {
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>{v.address || '-'}</TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <IconButton size="small" onClick={() => handleEdit(v)}>
-                        <Edit fontSize="small" sx={{ color: '#3b82f6' }} />
+                      <IconButton size="small" onClick={() => handleEdit(v)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                        <Edit sx={{ fontSize: 17 }}   />
                       </IconButton>
-                      <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, id: v.id })}>
-                        <DeleteIcon fontSize="small" sx={{ color: '#ef4444' }} />
+                      <IconButton size="small" onClick={() => setDeleteConfirm({ open: true, id: v.id })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                        <DeleteIcon sx={{ fontSize: 17 }}   />
                       </IconButton>
                     </Box>
                   </TableCell>

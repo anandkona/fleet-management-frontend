@@ -87,8 +87,8 @@ export default function DriverPortalSettlementsPage() {
                     <Chip label={s.status || 'PENDING'} size="small" color={getStatusColor(s.status)} sx={{ fontWeight: 'bold' }} />
                   </TableCell>
                   <TableCell align="right" sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <IconButton size="small" color="primary" onClick={() => handleViewSummary(s.id)}>
-                      <Visibility fontSize="small" />
+                    <IconButton size="small"  onClick={() => handleViewSummary(s.id)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                      <Visibility sx={{ fontSize: 17 }}  />
                     </IconButton>
                   </TableCell>
                 </TableRow>

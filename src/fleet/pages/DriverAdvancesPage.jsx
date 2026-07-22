@@ -242,19 +242,19 @@ export default function DriverAdvancesPage() {
                     <Chip label={a.status || 'DRAFT'} size="small" color={getStatusColor(a.status)} sx={{ fontWeight: 'bold' }} />
                   </TableCell>
                   <TableCell align="right" sx={{ borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>
-                    <IconButton size="small" color="primary" onClick={() => handleEdit(a)}>
-                      <Edit fontSize="small" />
+                    <IconButton size="small"  onClick={() => handleEdit(a)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                      <Edit sx={{ fontSize: 17 }}  />
                     </IconButton>
-                    <IconButton size="small" color="error" onClick={() => setDeleteConfirm({ open: true, id: a.id })}>
-                      <DeleteIcon fontSize="small" />
+                    <IconButton size="small"  onClick={() => setDeleteConfirm({ open: true, id: a.id })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                      <DeleteIcon sx={{ fontSize: 17 }}  />
                     </IconButton>
                     {(a.status === 'SUBMITTED' || a.status === 'DRAFT') && (
                       <>
-                        <IconButton size="small" color="success" onClick={() => handleAction(a.id, 'approve')}>
-                          <CheckCircle fontSize="small" />
+                        <IconButton size="small"  onClick={() => handleAction(a.id, 'approve')} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}>
+                          <CheckCircle sx={{ fontSize: 17 }}  />
                         </IconButton>
-                        <IconButton size="small" color="warning" onClick={() => handleAction(a.id, 'reject')}>
-                          <Cancel fontSize="small" />
+                        <IconButton size="small"  onClick={() => handleAction(a.id, 'reject')} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                          <Cancel sx={{ fontSize: 17 }}  />
                         </IconButton>
                       </>
                     )}

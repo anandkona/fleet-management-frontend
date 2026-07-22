@@ -266,7 +266,7 @@ export default function InventoryPage() {
                           sx={{ fontSize: '0.65rem', fontWeight: 700 }} />
                       </TableCell>
                       <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-                        <IconButton size="small" onClick={(e) => handleMenuOpen(e, a)} sx={{ color: 'text.primary' }}><MoreVertIcon fontSize="small" /></IconButton>
+                        <IconButton size="small" onClick={(e) => handleMenuOpen(e, a)} sx={{ bgcolor: '#64748b15', color: '#64748b', '&:hover': { bgcolor: '#64748b30' } }}><MoreVertIcon sx={{ fontSize: 17 }}  /></IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -306,15 +306,15 @@ export default function InventoryPage() {
                         <Stack direction="row" spacing={0.5}>
                           {hasPermission('asset_update') && (
                             <Tooltip title="EditOutlined Category">
-                              <IconButton size="small" onClick={() => { setEditCatItem(c); setCatForm({ name: c.name, key: c.key, description: c.description || '', status: c.status || 'ACTIVE' }); setCatOpenDialog(true); }}>
-                                <EditOutlinedIcon fontSize="small" sx={{ color: '#60a5fa' }} />
+                              <IconButton size="small" onClick={() => { setEditCatItem(c); setCatForm({ name: c.name, key: c.key, description: c.description || '', status: c.status || 'ACTIVE' }); setCatOpenDialog(true); }} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}>
+                                <EditOutlinedIcon sx={{ fontSize: 17 }}   />
                               </IconButton>
                             </Tooltip>
                           )}
                           {hasPermission('asset_delete') && (
                             <Tooltip title="Delete Category">
-                              <IconButton size="small" onClick={() => handleCatDelete(c)}>
-                                <DeleteOutlineIcon fontSize="small" sx={{ color: '#ef4444' }} />
+                              <IconButton size="small" onClick={() => handleCatDelete(c)} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}>
+                                <DeleteOutlineIcon sx={{ fontSize: 17 }}   />
                               </IconButton>
                             </Tooltip>
                           )}

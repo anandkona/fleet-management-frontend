@@ -434,18 +434,16 @@ export default function DocumentsPage() {
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                          <Tooltip title="View"><IconButton size="small" onClick={() => openView(row)} sx={{ color: '#64748b', '&:hover': { color: '#0f172a', bgcolor: '#f1f5f9' } }}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
-                          <Tooltip title="Download"><IconButton size="small" onClick={() => handleDownload(row)} sx={{ color: '#64748b', '&:hover': { color: '#0f172a', bgcolor: '#f1f5f9' } }}><DownloadIcon fontSize="small" /></IconButton></Tooltip>
+                          <Tooltip title="View"><IconButton size="small" onClick={() => openView(row)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}><VisibilityIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
+                          <Tooltip title="Download"><IconButton size="small" onClick={() => handleDownload(row)} sx={{ bgcolor: '#8b5cf615', color: '#8b5cf6', '&:hover': { bgcolor: '#8b5cf630' } }}><DownloadIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
                           {(row.verificationStatus !== 'VERIFIED') && (
-                            <Tooltip title="Verify"><IconButton size="small" onClick={() => handleVerify(row.id || row._id, 'VERIFIED')} sx={{ color: '#10b981', '&:hover': { bgcolor: '#ecfdf5' } }}><VerifiedUserIcon fontSize="small" /></IconButton></Tooltip>
+                            <Tooltip title="Verify"><IconButton size="small" onClick={() => handleVerify(row.id || row._id, 'VERIFIED')} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}><VerifiedUserIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
                           )}
                           {(row.verificationStatus !== 'REJECTED') && (
-                            <Tooltip title="Reject"><IconButton size="small" onClick={() => handleVerify(row.id || row._id, 'REJECTED')} sx={{ color: '#ef4444', '&:hover': { bgcolor: '#fef2f2' } }}><ThumbDownIcon fontSize="small" /></IconButton></Tooltip>
+                            <Tooltip title="Reject"><IconButton size="small" onClick={() => handleVerify(row.id || row._id, 'REJECTED')} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><ThumbDownIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
                           )}
-                          {(row.status !== 'ARCHIVED') && (
-                            <Tooltip title="Archive"><IconButton size="small" onClick={() => handleArchive(row.id || row._id)} sx={{ color: '#f59e0b', '&:hover': { bgcolor: '#fffbeb' } }}><ArchiveIcon fontSize="small" /></IconButton></Tooltip>
-                          )}
-                          <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteDialog({ open: true, doc: row })} sx={{ color: '#ef4444', '&:hover': { bgcolor: '#fef2f2' } }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+
+                          <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteDialog({ open: true, doc: row })} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><DeleteIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
                         </Stack>
                       </TableCell>
                     </TableRow>

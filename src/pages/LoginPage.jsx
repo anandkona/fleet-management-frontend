@@ -42,6 +42,7 @@ export default function LoginPage() {
       setError('Please enter both email and password.');
       return;
     }
+
     setSubmitting(true);
     try {
       await login(identifier.trim(), password);
@@ -109,7 +110,8 @@ export default function LoginPage() {
           borderRadius: '24px',
           background: '#FFFFFF',
           border: '1px solid #E2E8F0',
-          boxShadow: '0 20px 40px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.01)',
+          // boxShadow: '0 20px 40px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.01)',+
+          boxShadow:3,
           p: { xs: 4, sm: 5 },
           zIndex: 1,
           position: 'relative'
@@ -133,7 +135,7 @@ export default function LoginPage() {
             <LocalShippingIcon sx={{ color: '#fff', fontSize: 26 }} />
           </Box>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-1px', mb: 1, textAlign: 'center' }}>
-            FleetAI Portal
+            FLEET MANAGEMENT
           </Typography>
           <Typography sx={{ color: '#64748B', fontSize: '0.9rem', textAlign: 'center', fontWeight: 550 }}>
             Intelligent logistics & operations center

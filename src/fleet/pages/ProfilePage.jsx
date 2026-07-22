@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Card, CardContent, Grid, Typography, Avatar, Divider, Skeleton, Button, Stack, Alert, Chip,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, useTheme, Fade, IconButton, Tooltip, Badge
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, useTheme, Fade, IconButton, Tooltip, Badge, InputAdornment
 } from '@mui/material';
-import { Refresh, Person, LocalPhone, Email, Security, Edit, Lock, VerifiedUser, AccountCircle } from '@mui/icons-material';
+import { Refresh, Person, LocalPhone, Email, Security, Edit, Lock, VerifiedUser, AccountCircle, Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { PageHeader } from '../components/Common';
+import { useSnackbar } from 'notistack';
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -23,6 +25,8 @@ export default function ProfilePage() {
   const [pwdOpen, setPwdOpen] = useState(false);
   const [pwdForm, setPwdForm] = useState({ password: '', confirmPassword: '' });
   const [pwdError, setPwdError] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
 
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -73,6 +77,8 @@ export default function ProfilePage() {
   const handleOpenPwd = () => {
     setPwdForm({ password: '', confirmPassword: '' });
     setPwdError('');
+    setShowPwd(false);
+    setShowConfirmPwd(false);
     setPwdOpen(true);
   };
 
@@ -89,7 +95,8 @@ export default function ProfilePage() {
     try {
       await api.patch(`/users/${user.id}/password`, { password: pwdForm.password });
       setPwdOpen(false);
-      alert('Password updated successfully');
+      enqueueSnackbar('Password updated successfully', { variant: 'success' });
+      setPwdForm({ password: '', confirmPassword: '' });
     } catch (err) {
       console.error(err);
       setPwdError('Failed to update password');
@@ -142,8 +149,8 @@ export default function ProfilePage() {
           subactions={
             <Stack direction="row" spacing={1.5}>
               <Tooltip title="Refresh Profile">
-                <IconButton onClick={fetchProfile} sx={{ border: '1px solid', borderColor: 'divider' }}>
-                  <Refresh />
+                <IconButton onClick={fetchProfile} sx={{ bgcolor: '#64748b15', color: '#64748b', '&:hover': { bgcolor: '#64748b30' } }}>
+                  <Refresh sx={{ fontSize: 17 }} />
                 </IconButton>
               </Tooltip>
               <Button startIcon={<Lock/>} variant="outlined" onClick={handleOpenPwd} sx={{ borderRadius: 2, px: 2 }}>
@@ -206,11 +213,9 @@ export default function ProfilePage() {
                       {profile?.name}
                     </Typography>
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} sx={{ mt: 0.5 }}>
-                      <Badge color="success" variant="dot" sx={{ '& .MuiBadge-badge': { transform: 'scale(1.2)' } }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                          {profile?.role?.name || 'Staff Member'}
-                        </Typography>
-                      </Badge>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        {profile?.role?.name || 'Staff Member'}
+                      </Typography>
                     </Stack>
                   </Box>
                 )}
@@ -245,48 +250,116 @@ export default function ProfilePage() {
 
           {/* Right Column: Detailed Info */}
           <Grid item xs={12} md={8}>
-            <Card sx={{ 
-              borderRadius: 4, 
-              border: '1px solid', 
-              borderColor: 'divider', 
-              boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.03)',
-              bgcolor: 'background.paper',
-              height: '100%'
-            }}>
-              <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-                  Contact Information
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-                  Manage your personal and contact details. Keep this information up to date.
-                </Typography>
+            <Stack spacing={4}>
+              <Card sx={{ 
+                borderRadius: 4, 
+                border: '1px solid', 
+                borderColor: 'divider', 
+                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.03)',
+                bgcolor: 'background.paper'
+              }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
+                    Contact Information
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                    Manage your personal and contact details. Keep this information up to date.
+                  </Typography>
 
-                {loading ? (
-                  <Grid container spacing={3}>
-                    {Array.from({ length: 4 }).map((_, idx) => (
-                      <Grid item xs={12} sm={6} key={idx}>
-                        <Skeleton variant="rounded" height={88} sx={{ borderRadius: 3 }} />
+                  {loading ? (
+                    <Grid container spacing={3}>
+                      {Array.from({ length: 4 }).map((_, idx) => (
+                        <Grid item xs={12} sm={6} key={idx}>
+                          <Skeleton variant="rounded" height={88} sx={{ borderRadius: 3 }} />
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ) : (
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} sm={6}>
+                        <InfoCard icon={<Person />} label="Full Name" value={profile?.name} />
                       </Grid>
-                    ))}
-                  </Grid>
-                ) : (
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6}>
-                      <InfoCard icon={<Person />} label="Full Name" value={profile?.name} />
+                      <Grid item xs={12} sm={6}>
+                        <InfoCard icon={<Email />} label="Email Address" value={profile?.email} />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <InfoCard icon={<LocalPhone />} label="Mobile Number" value={profile?.mobile} />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <InfoCard icon={<Security />} label="System Role" value={profile?.role?.name || 'User'} />
+                      </Grid>
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <InfoCard icon={<Email />} label="Email Address" value={profile?.email} />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <InfoCard icon={<LocalPhone />} label="Mobile Number" value={profile?.mobile} />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <InfoCard icon={<Security />} label="System Role" value={profile?.role?.name || 'User'} />
-                    </Grid>
-                  </Grid>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Change Password Card */}
+              <Card sx={{ 
+                borderRadius: 4, 
+                border: '1px solid', 
+                borderColor: 'divider', 
+                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.03)',
+                bgcolor: 'background.paper'
+              }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
+                    Change Password
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                    Ensure your account stays secure by updating your password regularly.
+                  </Typography>
+                  
+                  {pwdError && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{pwdError}</Alert>}
+                  
+                  <Box sx={{ maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <TextField
+                      label="New Password"
+                      type={showPwd ? "text" : "password"}
+                      fullWidth
+                      variant="outlined"
+                      size="small"
+                      value={pwdForm.password}
+                      onChange={(e) => setPwdForm({...pwdForm, password: e.target.value})}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton onClick={() => setShowPwd(!showPwd)} edge="end" size="small">
+                              {showPwd ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                            </IconButton>
+                          </InputAdornment>
+                        )
+                      }}
+                    />
+                    <TextField
+                      label="Confirm Password"
+                      type={showConfirmPwd ? "text" : "password"}
+                      fullWidth
+                      variant="outlined"
+                      size="small"
+                      value={pwdForm.confirmPassword}
+                      onChange={(e) => setPwdForm({...pwdForm, confirmPassword: e.target.value})}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton onClick={() => setShowConfirmPwd(!showConfirmPwd)} edge="end" size="small">
+                              {showConfirmPwd ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                            </IconButton>
+                          </InputAdornment>
+                        )
+                      }}
+                    />
+                    <Button 
+                      onClick={handleSavePwd} 
+                      variant="contained" 
+                      disabled={submitting} 
+                      sx={{ borderRadius: 2, py: 1, alignSelf: 'flex-start' }}
+                    >
+                      {submitting ? 'Updating...' : 'Update Password'}
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Stack>
           </Grid>
         </Grid>
 
@@ -335,19 +408,37 @@ export default function ProfilePage() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
               <TextField
                 label="New Password"
-                type="password"
+                type={showPwd ? "text" : "password"}
                 fullWidth
                 variant="outlined"
                 value={pwdForm.password}
                 onChange={(e) => setPwdForm({...pwdForm, password: e.target.value})}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPwd(!showPwd)} edge="end">
+                        {showPwd ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
               />
               <TextField
                 label="Confirm Password"
-                type="password"
+                type={showConfirmPwd ? "text" : "password"}
                 fullWidth
                 variant="outlined"
                 value={pwdForm.confirmPassword}
                 onChange={(e) => setPwdForm({...pwdForm, confirmPassword: e.target.value})}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowConfirmPwd(!showConfirmPwd)} edge="end">
+                        {showConfirmPwd ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
               />
             </Box>
           </DialogContent>

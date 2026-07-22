@@ -439,9 +439,9 @@ export default function DriversPage() {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 0.5 }}>
-                      <IconButton size="small" onClick={() => setViewDriver(d)}><VisibilityIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton>
-                      <IconButton size="small" onClick={() => handleEdit(d)}><EditIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton>
-                      <IconButton size="small" onClick={() => handleDeleteClick(d)}><DeleteIcon sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton>
+                      <IconButton size="small" onClick={() => setViewDriver(d)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}><VisibilityIcon sx={{ fontSize: 17 }}  /></IconButton>
+                      <IconButton size="small" onClick={() => handleEdit(d)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}><EditIcon sx={{ fontSize: 17 }}  /></IconButton>
+                      <IconButton size="small" onClick={() => handleDeleteClick(d)} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><DeleteIcon sx={{ fontSize: 17 }}  /></IconButton>
                     </Box>
                   </TableCell>
                 </TableRow>

@@ -101,7 +101,9 @@ export default function PaymentsPage() {
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>{new Date(p.paymentDate).toLocaleDateString()}</TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', fontWeight: 600, color: theme.palette.primary.main }}>₹{p.amount?.toLocaleString()}</TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <Chip label={p.paymentMode?.replace('_', ' ')} size="small" variant="outlined" />
+                    <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.primary' }}>
+                      {p.paymentMode?.replace('_', ' ')}
+                    </Typography>
                   </TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>{p.referenceNumber || '-'}</TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>

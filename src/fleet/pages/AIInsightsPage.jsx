@@ -9,14 +9,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
 import api from '../../services/api';
 
-const fallbackInsights = [
-  { id: 1, severity: 'warning', title: 'Vehicle KL-07-AB-1234 Overdue for Maintenance', description: 'Last serviced 45 days ago. Schedule immediately.', category: 'Maintenance', timestamp: '2h ago' },
-  { id: 2, severity: 'critical', title: 'Engine temperature spike detected on MH-12-CD-5678', description: 'Temperature exceeded 105°C. Recommend immediate inspection.', category: 'Safety', timestamp: '45m ago' },
-  { id: 3, severity: 'success', title: 'Fuel efficiency improved by 8% this week', description: 'Route optimization recommendations contributed to savings.', category: 'Efficiency', timestamp: '1d ago' },
-  { id: 4, severity: 'info', title: 'Driver Rajesh Kumar completed 500 accident-free trips', description: 'Consider for recognition award.', category: 'Driver', timestamp: '3h ago' },
-  { id: 5, severity: 'warning', title: 'Spare parts inventory low: Brake Pads (3 remaining)', description: 'Auto-reorder threshold reached. Create purchase order.', category: 'Inventory', timestamp: '5h ago' },
-  { id: 6, severity: 'info', title: 'Route optimization opportunity: Mumbai-Pune corridor', description: 'Potential 12% fuel savings by adjusting departure time.', category: 'Route', timestamp: '6h ago' },
-];
+const fallbackInsights = [];
 
 export default function AIInsightsPage() {
   const [insights, setInsights] = useState([]);
@@ -28,10 +21,10 @@ export default function AIInsightsPage() {
     try {
       const res = await api.get('/ai-insights', { params: { limit: 100 } });
       const items = res.data?.data?.items ?? (Array.isArray(res.data?.data) ? res.data.data : []);
-      setInsights(items.length > 0 ? items : fallbackInsights);
+      setInsights(items);
     } catch (err) {
       console.error(err);
-      setInsights(fallbackInsights);
+      setInsights([]);
     }
     finally { setLoading(false); }
   }, []);

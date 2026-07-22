@@ -432,7 +432,7 @@ export default function MaintenancePage() {
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}><Chip label={(t.status || 'Pending').toUpperCase()} size="small" color={statusColor(t.status)} sx={{ fontSize: '0.65rem', fontWeight: 700 }} /></TableCell>
                   <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                     <Stack direction="row" spacing={1}>
-                      <Tooltip title="Preview"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => setServicesDialogItem(t)}><VisibilityIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>
+                      <Tooltip title="Preview"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => setServicesDialogItem(t)} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}><VisibilityIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>
                       {(!t.status || t.status === 'DRAFT') && <Tooltip title="Edit"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => {
                         setEditItem(t); setForm({
                           vehicleId: t.vehicleId || t.vehicle?._id || t.vehicle?.id || '', vehiclePlate: t.vehiclePlate || t.vehicle?.vehicleNumber || t.vehicle?.licensePlate || '', vendor: t.vendor || '', date: t.date ? new Date(t.date).toISOString().split('T')[0] : (t.requestDate ? new Date(t.requestDate).toISOString().split('T')[0] : ''), priority: t.priority || 'LOW', category: t.category || '', description: t.description || '', notes: t.notes || '', lineItems: getRecordLineItems(t).map(item => ({
@@ -443,10 +443,10 @@ export default function MaintenancePage() {
                             total: item.total ?? (Number(item.amount ?? item.price ?? item.cost ?? 0) + ((Number(item.amount ?? item.price ?? item.cost ?? 0) * Number(item.tax ?? 0)) / 100)),
                           })), images: t.images || []
                         }); setOpenDialog(true);
-                      }}><EditIcon sx={{ fontSize: 17, color: '#60a5fa' }} /></IconButton></Tooltip>}
-                      {t.status === 'SUBMITTED' && <Tooltip title="Approve"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => handleWorkflow(t.id || t._id, 'approve')}><CheckCircleIcon sx={{ fontSize: 17, color: '#10b981' }} /></IconButton></Tooltip>}
+                      }} sx={{ bgcolor: '#3b82f615', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f630' } }}><EditIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
+                      {t.status === 'SUBMITTED' && <Tooltip title="Approve"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => handleWorkflow(t.id || t._id, 'approve')} sx={{ bgcolor: '#10b98115', color: '#10b981', '&:hover': { bgcolor: '#10b98130' } }}><CheckCircleIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
 
-                      {(!t.status || t.status === 'DRAFT' || t.status === 'SUBMITTED') && <Tooltip title="Cancel"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => handleWorkflow(t.id || t._id, 'cancel')}><CancelIcon sx={{ fontSize: 17, color: '#ef4444' }} /></IconButton></Tooltip>}
+                      {(!t.status || t.status === 'DRAFT' || t.status === 'SUBMITTED') && <Tooltip title="Cancel"><IconButton disabled={processingId === (t.id || t._id)} size="small" onClick={() => handleWorkflow(t.id || t._id, 'cancel')} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><CancelIcon sx={{ fontSize: 17 }}  /></IconButton></Tooltip>}
                     </Stack>
                   </TableCell>
                 </TableRow>
@@ -517,7 +517,7 @@ export default function MaintenancePage() {
                         <TableCell sx={{ py: 0.5 }}><TextField size="small" type="number" variant="standard" value={item.amount} onChange={e => handleLineItemChange(item.id, 'amount', e.target.value)} /></TableCell>
                         <TableCell sx={{ py: 0.5 }}><TextField size="small" type="number" variant="standard" value={item.tax} onChange={e => handleLineItemChange(item.id, 'tax', e.target.value)} /></TableCell>
                         <TableCell sx={{ py: 0.5, fontSize: '0.8rem' }}>{item.total ? Number(item.total).toFixed(2) : 0}</TableCell>
-                        <TableCell sx={{ py: 0.5 }}><IconButton size="small" onClick={() => handleDeleteLineItem(item.id)}><DeleteIcon sx={{ fontSize: 16, color: 'error.main' }} /></IconButton></TableCell>
+                        <TableCell sx={{ py: 0.5 }}><IconButton size="small" onClick={() => handleDeleteLineItem(item.id)} sx={{ bgcolor: '#ef444415', color: '#ef4444', '&:hover': { bgcolor: '#ef444430' } }}><DeleteIcon sx={{ fontSize: 17 }}  /></IconButton></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
