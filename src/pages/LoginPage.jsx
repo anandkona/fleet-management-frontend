@@ -134,7 +134,7 @@ export default function LoginPage() {
           >
             <LocalShippingIcon sx={{ color: '#fff', fontSize: 26 }} />
           </Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-1px', mb: 1, textAlign: 'center' }}>
+          <Typography variant="h4" sx={{ fontFamily: "'Outfit', 'Inter', sans-serif", fontWeight: 900, color: '#0F172A', letterSpacing: '-0.5px', mb: 1, textAlign: 'center', textTransform: 'uppercase' }}>
             FLEET MANAGEMENT
           </Typography>
           <Typography sx={{ color: '#64748B', fontSize: '0.9rem', textAlign: 'center', fontWeight: 550 }}>

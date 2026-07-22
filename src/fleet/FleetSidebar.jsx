@@ -76,6 +76,9 @@ const menuConfig = [
       { id: 'fuel', label: 'Fuel Logs', icon: <LocalGasStationIcon />, permission: 'fuel_view' },
       { id: 'drivers', label: 'Drivers', icon: <PeopleIcon />, permission: 'driver_view' },
       { id: 'driver-submissions', label: 'Driver Submissions', icon: <AssignmentIcon />, permission: 'driver_submission_view' },
+      { id: 'advances', label: 'Driver Advances', icon: <MoneyIcon />, permission: 'driver_advance_view' },
+      { id: 'settlements', label: 'Driver Settlements', icon: <HandshakeIcon />, permission: 'driver_settlement_view' },
+      { id: 'inventory', label: 'Asset Inventory', icon: <InventoryIcon />, permission: 'asset_view' },
       { id: 'dispatch', label: 'Dispatch Board', icon: <DynamicFeedIcon />, permission: 'dispatch_view' },
       { id: 'compliance-board', label: 'Compliance Board', icon: <FactCheckIcon />, permission: 'compliance_view' }
     ]
@@ -97,9 +100,7 @@ const menuConfig = [
           { id: 'vendors', label: 'Vendors', icon: <StorefrontIcon />, permission: 'finance_view' },
           { id: 'trip-billing', label: 'Trip Billing', icon: <ReceiptIcon />, permission: 'finance_view' },
           { id: 'pod-billing', label: 'POD Chain', icon: <FactCheckIcon />, permission: 'finance_view' },
-          { id: 'payments', label: 'Payments', icon: <PaymentIcon />, permission: 'finance_view' },
-          { id: 'advances', label: 'Driver Advances', icon: <MoneyIcon />, permission: 'driver_advance_view' },
-          { id: 'settlements', label: 'Driver Settlements', icon: <HandshakeIcon />, permission: 'driver_settlement_view' }
+          { id: 'payments', label: 'Payments', icon: <PaymentIcon />, permission: 'finance_view' }
         ]
       }
     ]
@@ -217,26 +218,23 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
         color: isDark ? '#F8FAFC' : '#0F172A'
       }}
     >
-      <Box sx={{ p: '24px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
         <Box
           sx={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '8px',
+            width: '96px',
+            height: '96px',
+            borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden'
           }}
         >
-          <img src={settings?.logo || "/fleet-logo.jpg"} alt="Fleet Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={settings?.logo || "/fleet-logo.jpg"} alt="Fleet Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, lineHeight: 1, color: isDark ? '#fff' : '#0F265C', letterSpacing: '1px' }}>
-            FLEET
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, lineHeight: 1, color: '#3B82F6', letterSpacing: '0.5px', mt: 0.3 }}>
-            MANAGEMENT SYSTEM
+          <Typography sx={{ fontFamily: "'Outfit', 'Inter', sans-serif", fontSize: '0.95rem', fontWeight: 900, lineHeight: 1.2, color: isDark ? '#fff' : '#0F265C', letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', }}>
+            FLEET MANAGEMENT
           </Typography>
         </Box>
       </Box>
@@ -263,7 +261,7 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
                 const isExpanded = openMenus[item.id];
                 const isSubItemActive = item.subItems && item.subItems.some(sub => sub.id === activeTab);
                 const isActive = activeTab === item.id || isSubItemActive;
-                
+
                 const renderItem = (i, isSub = false) => {
                   const isIActive = activeTab === i.id;
                   return (
@@ -377,14 +375,14 @@ export default function FleetSidebar({ activeTab, setActiveTab }) {
         </IconButton>
       </Box>
 
-      <ConfirmDialog 
-        open={logoutDialogOpen} 
-        title="Logout" 
-        message="Are you sure you want to log out?" 
-        onConfirm={handleLogout} 
-        onCancel={() => setLogoutDialogOpen(false)} 
-        confirmColor="error" 
+      <ConfirmDialog
+        open={logoutDialogOpen}
+        title="Logout"
+        message="Are you sure you want to log out?"
+        onConfirm={handleLogout}
+        onCancel={() => setLogoutDialogOpen(false)}
+        confirmColor="error"
       />
-    </Box>
+    </Box >
   );
 }
