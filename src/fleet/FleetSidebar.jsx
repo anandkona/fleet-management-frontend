@@ -105,12 +105,7 @@ const menuConfig = [
       }
     ]
   },
-  {
-    category: 'INTELLIGENCE',
-    items: [
-      { id: 'ai-insights', label: 'AI Insights', icon: <AutoAwesomeIcon />, badge: 'AI', badgeColor: 'info', permission: 'report_view' }
-    ]
-  },
+
   {
     category: 'SYSTEM',
     items: [
